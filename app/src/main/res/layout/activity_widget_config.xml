@@ -29,10 +29,47 @@
         android:max="255" />
 
     <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/show_year_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Show Year" />
+
+    <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/show_day_of_week_switch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Show Day of Week" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Language" />
+
+    <RadioGroup
+        android:id="@+id/language_radio_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <RadioButton
+            android:id="@+id/lang_system"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="System Default" />
+
+        <RadioButton
+            android:id="@+id/lang_english"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="English" />
+
+        <RadioButton
+            android:id="@+id/lang_japanese"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Japanese" />
+    </RadioGroup>
 
 
 </LinearLayout>

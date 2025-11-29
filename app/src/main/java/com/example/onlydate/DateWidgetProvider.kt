@@ -45,7 +45,9 @@ class DateWidgetProvider : AppWidgetProvider() {
             val textColor = WidgetConfigActivity.loadTextColor(context)
             val bgColor = WidgetConfigActivity.loadBgColor(context)
             val bgOpacity = WidgetConfigActivity.loadBgOpacity(context)
+            val showYear = WidgetConfigActivity.loadShowYear(context)
             val showDayOfWeek = WidgetConfigActivity.loadShowDayOfWeek(context)
+            val language = WidgetConfigActivity.loadLanguage(context)
 
             views.setTextColor(R.id.widget_date, textColor)
             views.setTextColor(R.id.widget_day_of_week, textColor)
@@ -54,13 +56,23 @@ class DateWidgetProvider : AppWidgetProvider() {
             views.setInt(R.id.widget_container, "setBackgroundColor", finalBgColor)
 
             val date = Date()
-            val sdfDate = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+            val dateFormatString = if (showYear) "yyyy/MM/dd" else "MM/dd"
+            val sdfDate = SimpleDateFormat(dateFormatString, Locale.getDefault())
             views.setTextViewText(R.id.widget_date, sdfDate.format(date))
 
             if (showDayOfWeek) {
                 views.setViewVisibility(R.id.widget_day_of_week, View.VISIBLE)
-                val sdfDay = SimpleDateFormat("EEE", Locale.getDefault())
-                views.setTextViewText(R.id.widget_day_of_week, sdfDay.format(date))
+                
+                val locale = when (language) {
+                    WidgetConfigActivity.LANG_ENGLISH -> Locale.ENGLISH
+                    WidgetConfigActivity.LANG_JAPANESE -> Locale.JAPAN
+                    else -> Locale.getDefault()
+                }
+                
+                // Use "EEE" for abbreviated day name (e.g., Mon, 月)
+                val sdfDay = SimpleDateFormat("EEE", locale)
+                val dayString = sdfDay.format(date)
+                views.setTextViewText(R.id.widget_day_of_week, "($dayString)")
             } else {
                 views.setViewVisibility(R.id.widget_day_of_week, View.GONE)
             }
