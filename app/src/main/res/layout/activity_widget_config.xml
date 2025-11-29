@@ -2,13 +2,37 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/text_color_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Text Color (e.g., #FFFFFF)" />
+
+    <EditText
+        android:id="@+id/background_color_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Background Color (e.g., #000000)" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Widget Configuration" />
+        android:text="Background Opacity" />
+
+    <SeekBar
+        android:id="@+id/opacity_seekbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="255" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/show_day_of_week_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Show Day of Week" />
 
     <Button
         android:id="@+id/save_button"
