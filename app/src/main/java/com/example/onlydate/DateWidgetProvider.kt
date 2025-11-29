@@ -49,8 +49,7 @@ class DateWidgetProvider : AppWidgetProvider() {
             val showDayOfWeek = WidgetConfigActivity.loadShowDayOfWeek(context)
             val language = WidgetConfigActivity.loadLanguage(context)
 
-            views.setTextColor(R.id.widget_date, textColor)
-            views.setTextColor(R.id.widget_day_of_week, textColor)
+            views.setTextColor(R.id.widget_text, textColor)
 
             val finalBgColor = Color.argb(bgOpacity, Color.red(bgColor), Color.green(bgColor), Color.blue(bgColor))
             views.setInt(R.id.widget_container, "setBackgroundColor", finalBgColor)
@@ -58,11 +57,9 @@ class DateWidgetProvider : AppWidgetProvider() {
             val date = Date()
             val dateFormatString = if (showYear) "yyyy/MM/dd" else "MM/dd"
             val sdfDate = SimpleDateFormat(dateFormatString, Locale.getDefault())
-            views.setTextViewText(R.id.widget_date, sdfDate.format(date))
+            val dateString = sdfDate.format(date)
 
-            if (showDayOfWeek) {
-                views.setViewVisibility(R.id.widget_day_of_week, View.VISIBLE)
-                
+            val finalText = if (showDayOfWeek) {
                 val locale = when (language) {
                     WidgetConfigActivity.LANG_ENGLISH -> Locale.ENGLISH
                     WidgetConfigActivity.LANG_JAPANESE -> Locale.JAPAN
@@ -72,10 +69,12 @@ class DateWidgetProvider : AppWidgetProvider() {
                 // Use "EEE" for abbreviated day name (e.g., Mon, 月)
                 val sdfDay = SimpleDateFormat("EEE", locale)
                 val dayString = sdfDay.format(date)
-                views.setTextViewText(R.id.widget_day_of_week, "($dayString)")
+                "$dateString ($dayString)"
             } else {
-                views.setViewVisibility(R.id.widget_day_of_week, View.GONE)
+                dateString
             }
+
+            views.setTextViewText(R.id.widget_text, finalText)
 
             // Clicking the widget opens the configuration activity
             val intent = Intent(context, WidgetConfigActivity::class.java)
