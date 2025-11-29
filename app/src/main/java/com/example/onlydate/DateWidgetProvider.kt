@@ -14,30 +14,38 @@ import java.util.*
 class DateWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        for (appWidgetId in appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, appWidgetId)
-        }
+        // There may be multiple widgets active, so update all of them
+        updateAppWidget(context, appWidgetManager, appWidgetIds)
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
-        for (appWidgetId in appWidgetIds) {
-            val prefs = context.getSharedPreferences(WidgetConfigActivity.PREFS_NAME, 0).edit()
-            prefs.remove(WidgetConfigActivity.PREF_TEXT_COLOR_KEY + appWidgetId)
-            prefs.remove(WidgetConfigActivity.PREF_BG_COLOR_KEY + appWidgetId)
-            prefs.remove(WidgetConfigActivity.PREF_BG_OPACITY_KEY + appWidgetId)
-            prefs.remove(WidgetConfigActivity.PREF_SHOW_DOW_KEY + appWidgetId)
-            prefs.apply()
-        }
+        // When the user deletes the widget, delete the preference associated with it.
+        // With global settings, we don't delete preferences when a widget is deleted.
+    }
+
+    override fun onEnabled(context: Context) {
+        // Enter relevant functionality for when the first widget is created
+    }
+
+    override fun onDisabled(context: Context) {
+        // Enter relevant functionality for when the last widget is disabled
     }
 
     companion object {
+        internal fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+            for (appWidgetId in appWidgetIds) {
+                updateAppWidget(context, appWidgetManager, appWidgetId)
+            }
+        }
+
         internal fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_layout)
 
-            val textColor = WidgetConfigActivity.loadTextColor(context, appWidgetId)
-            val bgColor = WidgetConfigActivity.loadBgColor(context, appWidgetId)
-            val bgOpacity = WidgetConfigActivity.loadBgOpacity(context, appWidgetId)
-            val showDayOfWeek = WidgetConfigActivity.loadShowDayOfWeek(context, appWidgetId)
+            // Load global settings (no appWidgetId needed)
+            val textColor = WidgetConfigActivity.loadTextColor(context)
+            val bgColor = WidgetConfigActivity.loadBgColor(context)
+            val bgOpacity = WidgetConfigActivity.loadBgOpacity(context)
+            val showDayOfWeek = WidgetConfigActivity.loadShowDayOfWeek(context)
 
             views.setTextColor(R.id.widget_date, textColor)
             views.setTextColor(R.id.widget_day_of_week, textColor)
@@ -57,6 +65,7 @@ class DateWidgetProvider : AppWidgetProvider() {
                 views.setViewVisibility(R.id.widget_day_of_week, View.GONE)
             }
 
+            // Clicking the widget opens the configuration activity
             val intent = Intent(context, WidgetConfigActivity::class.java)
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
             val pendingIntent = PendingIntent.getActivity(context, appWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)

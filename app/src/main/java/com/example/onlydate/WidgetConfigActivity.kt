@@ -2,6 +2,7 @@ package com.example.onlydate
 
 import android.app.Activity
 import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -38,57 +39,56 @@ class WidgetConfigActivity : Activity() {
             )
         }
 
-        val isWidgetConfigure = appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID
+        // Always load global settings
+        loadSettings()
 
-        if (isWidgetConfigure) {
-            // Widget configuration flow
-            loadSettings()
-            findViewById<Button>(R.id.save_button).setOnClickListener {
-                val context: Context = this@WidgetConfigActivity
-                saveSettings(context, appWidgetId)
-                val appWidgetManager = AppWidgetManager.getInstance(context)
-                DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId)
+        findViewById<Button>(R.id.save_button).setOnClickListener {
+            val context: Context = this@WidgetConfigActivity
+            saveSettings(context)
+
+            // Update ALL widgets
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val componentName = ComponentName(context, DateWidgetProvider::class.java)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds)
+
+            // If launched for a specific widget, return the result
+            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
                 val resultValue = Intent()
                 resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
                 setResult(RESULT_OK, resultValue)
-                finish()
             }
-        } else {
-            // App launcher flow
-            // The UI will show default values. The "Save" button will just close the activity.
-            findViewById<Button>(R.id.save_button).setOnClickListener {
-                finish()
-            }
+            finish()
         }
     }
 
     private fun loadSettings() {
         val prefs = getSharedPreferences(PREFS_NAME, 0)
-        textColorInput.setText(prefs.getString(PREF_TEXT_COLOR_KEY + appWidgetId, "#FFFFFF") ?: "#FFFFFF")
-        backgroundColorInput.setText(prefs.getString(PREF_BG_COLOR_KEY + appWidgetId, "#000000") ?: "#000000")
-        opacitySeekBar.progress = prefs.getInt(PREF_BG_OPACITY_KEY + appWidgetId, 128)
-        showDayOfWeekSwitch.isChecked = prefs.getBoolean(PREF_SHOW_DOW_KEY + appWidgetId, true)
+        textColorInput.setText(prefs.getString(PREF_TEXT_COLOR_KEY, "#FFFFFF") ?: "#FFFFFF")
+        backgroundColorInput.setText(prefs.getString(PREF_BG_COLOR_KEY, "#000000") ?: "#000000")
+        opacitySeekBar.progress = prefs.getInt(PREF_BG_OPACITY_KEY, 128)
+        showDayOfWeekSwitch.isChecked = prefs.getBoolean(PREF_SHOW_DOW_KEY, true)
     }
 
-    private fun saveSettings(context: Context, appWidgetId: Int) {
+    private fun saveSettings(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, 0).edit()
-        prefs.putString(PREF_TEXT_COLOR_KEY + appWidgetId, textColorInput.text.toString())
-        prefs.putString(PREF_BG_COLOR_KEY + appWidgetId, backgroundColorInput.text.toString())
-        prefs.putInt(PREF_BG_OPACITY_KEY + appWidgetId, opacitySeekBar.progress)
-        prefs.putBoolean(PREF_SHOW_DOW_KEY + appWidgetId, showDayOfWeekSwitch.isChecked)
+        prefs.putString(PREF_TEXT_COLOR_KEY, textColorInput.text.toString())
+        prefs.putString(PREF_BG_COLOR_KEY, backgroundColorInput.text.toString())
+        prefs.putInt(PREF_BG_OPACITY_KEY, opacitySeekBar.progress)
+        prefs.putBoolean(PREF_SHOW_DOW_KEY, showDayOfWeekSwitch.isChecked)
         prefs.apply()
     }
 
     companion object {
         internal const val PREFS_NAME = "com.example.onlydate.DateWidgetProvider"
-        internal const val PREF_TEXT_COLOR_KEY = "text_color_"
-        internal const val PREF_BG_COLOR_KEY = "bg_color_"
-        internal const val PREF_BG_OPACITY_KEY = "bg_opacity_"
-        internal const val PREF_SHOW_DOW_KEY = "show_dow_"
+        internal const val PREF_TEXT_COLOR_KEY = "text_color"
+        internal const val PREF_BG_COLOR_KEY = "bg_color"
+        internal const val PREF_BG_OPACITY_KEY = "bg_opacity"
+        internal const val PREF_SHOW_DOW_KEY = "show_dow"
 
-        internal fun loadTextColor(context: Context, appWidgetId: Int): Int {
+        internal fun loadTextColor(context: Context): Int {
             val prefs = context.getSharedPreferences(PREFS_NAME, 0)
-            val colorString = prefs.getString(PREF_TEXT_COLOR_KEY + appWidgetId, "#FFFFFF") ?: "#FFFFFF"
+            val colorString = prefs.getString(PREF_TEXT_COLOR_KEY, "#FFFFFF") ?: "#FFFFFF"
             return try {
                 Color.parseColor(colorString)
             } catch (e: IllegalArgumentException) {
@@ -96,9 +96,9 @@ class WidgetConfigActivity : Activity() {
             }
         }
 
-        internal fun loadBgColor(context: Context, appWidgetId: Int): Int {
+        internal fun loadBgColor(context: Context): Int {
             val prefs = context.getSharedPreferences(PREFS_NAME, 0)
-            val colorString = prefs.getString(PREF_BG_COLOR_KEY + appWidgetId, "#000000") ?: "#000000"
+            val colorString = prefs.getString(PREF_BG_COLOR_KEY, "#000000") ?: "#000000"
             return try {
                 Color.parseColor(colorString)
             } catch (e: IllegalArgumentException) {
@@ -106,14 +106,14 @@ class WidgetConfigActivity : Activity() {
             }
         }
 
-        internal fun loadBgOpacity(context: Context, appWidgetId: Int): Int {
+        internal fun loadBgOpacity(context: Context): Int {
             val prefs = context.getSharedPreferences(PREFS_NAME, 0)
-            return prefs.getInt(PREF_BG_OPACITY_KEY + appWidgetId, 128)
+            return prefs.getInt(PREF_BG_OPACITY_KEY, 128)
         }
 
-        internal fun loadShowDayOfWeek(context: Context, appWidgetId: Int): Boolean {
+        internal fun loadShowDayOfWeek(context: Context): Boolean {
             val prefs = context.getSharedPreferences(PREFS_NAME, 0)
-            return prefs.getBoolean(PREF_SHOW_DOW_KEY + appWidgetId, true)
+            return prefs.getBoolean(PREF_SHOW_DOW_KEY, true)
         }
     }
 }
