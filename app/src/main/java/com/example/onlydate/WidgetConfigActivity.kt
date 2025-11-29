@@ -42,24 +42,53 @@ class WidgetConfigActivity : Activity() {
         // Always load global settings
         loadSettings()
 
-        findViewById<Button>(R.id.save_button).setOnClickListener {
-            val context: Context = this@WidgetConfigActivity
-            saveSettings(context)
-
-            // Update ALL widgets
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val componentName = ComponentName(context, DateWidgetProvider::class.java)
-            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
-            DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds)
-
-            // If launched for a specific widget, return the result
-            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                val resultValue = Intent()
-                resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-                setResult(RESULT_OK, resultValue)
-            }
-            finish()
+        // Set result OK immediately if it's a widget configuration
+        if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+            val resultValue = Intent()
+            resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            setResult(RESULT_OK, resultValue)
         }
+
+        // Setup listeners for instant updates
+        setupListeners()
+    }
+
+    private fun setupListeners() {
+        val textWatcher = object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                updateWidgets()
+            }
+        }
+
+        textColorInput.addTextChangedListener(textWatcher)
+        backgroundColorInput.addTextChangedListener(textWatcher)
+
+        opacitySeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    updateWidgets()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        showDayOfWeekSwitch.setOnCheckedChangeListener { _, _ ->
+            updateWidgets()
+        }
+    }
+
+    private fun updateWidgets() {
+        val context: Context = this@WidgetConfigActivity
+        saveSettings(context)
+
+        // Update ALL widgets
+        val appWidgetManager = AppWidgetManager.getInstance(context)
+        val componentName = ComponentName(context, DateWidgetProvider::class.java)
+        val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+        DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds)
     }
 
     private fun loadSettings() {
