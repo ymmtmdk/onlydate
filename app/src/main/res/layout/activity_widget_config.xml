@@ -36,10 +36,17 @@
 
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/show_day_of_week_switch"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Show Day of Week" />
+        android:text="@string/show_day_of_week"
+        android:checked="true" />
 
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/show_temperature_switch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/show_temperature"
+        android:checked="false" />
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

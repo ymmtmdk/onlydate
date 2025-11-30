@@ -22,7 +22,8 @@ class DateWidgetProvider : AppWidgetProvider() {
         val pendingResult = goAsync()
         Thread {
             try {
-                val temp = fetchTemperature(context)
+                val showTemp = WidgetConfigActivity.loadShowTemp(context)
+                val temp = if (showTemp) fetchTemperature(context) else null
                 updateAppWidget(context, appWidgetManager, appWidgetIds, temp)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -62,6 +63,7 @@ class DateWidgetProvider : AppWidgetProvider() {
             val bgOpacity = WidgetConfigActivity.loadBgOpacity(context)
             val showYear = WidgetConfigActivity.loadShowYear(context)
             val showDayOfWeek = WidgetConfigActivity.loadShowDayOfWeek(context)
+            val showTemp = WidgetConfigActivity.loadShowTemp(context)
             val language = WidgetConfigActivity.loadLanguage(context)
 
             views.setTextColor(R.id.widget_text, textColor)
@@ -89,7 +91,11 @@ class DateWidgetProvider : AppWidgetProvider() {
                 dateString
             }
 
-            val displayTemp = temp ?: loadLastTemp(context)
+            val displayTemp = if (showTemp) {
+                temp ?: loadLastTemp(context)
+            } else {
+                null
+            }
             val textWithTemp = if (displayTemp != null) {
                 "$finalText $displayTemp°C"
             } else {
