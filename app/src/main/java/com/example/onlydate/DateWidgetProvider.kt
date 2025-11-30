@@ -8,6 +8,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.view.View
 import android.widget.RemoteViews
+import org.json.JSONArray
 import java.text.SimpleDateFormat
 import java.util.*
 import java.io.BufferedReader
@@ -122,7 +123,7 @@ class DateWidgetProvider : AppWidgetProvider() {
 
         private fun fetchTemperature(context: Context): Double? {
             return try {
-                val url = URL("https://my-worker-dev.tmtfctry.workers.dev/")
+                val url = URL("https://my-worker-dev.tmtfctry.workers.dev/46106/temp")
                 val connection = url.openConnection()
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
@@ -131,10 +132,7 @@ class DateWidgetProvider : AppWidgetProvider() {
                 val response = reader.readText()
                 reader.close()
                 
-                val json = JSONObject(response)
-                val tempArray = json.getJSONArray("temp")
-                val temp = tempArray.getDouble(0)
-                
+                val temp = JSONArray(response).getDouble(0)
                 saveLastTemp(context, temp)
                 temp
             } catch (e: Exception) {
