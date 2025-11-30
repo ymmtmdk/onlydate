@@ -97,7 +97,7 @@ class DateWidgetProvider : AppWidgetProvider() {
                 null
             }
             val textWithTemp = if (displayTemp != null) {
-                "$finalText $displayTemp°C"
+                "$finalText %.1f°C".format(displayTemp)
             } else {
                 finalText
             }

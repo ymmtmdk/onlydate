@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import android.widget.Button
 import android.widget.EditText
 import android.widget.RadioGroup
 import android.widget.SeekBar
@@ -50,25 +49,6 @@ class WidgetConfigActivity : Activity() {
 
         // Always load global settings
         loadSettings()
-
-        findViewById<Button>(R.id.save_button).setOnClickListener {
-            val context: Context = this@WidgetConfigActivity
-            saveSettings(context)
-
-            // Update ALL widgets
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val componentName = ComponentName(context, DateWidgetProvider::class.java)
-            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
-            DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds)
-
-            // If launched for a specific widget, return the result
-            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                val resultValue = Intent()
-                resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-                setResult(RESULT_OK, resultValue)
-            }
-            finish()
-        }
 
         // Setup listeners for instant updates
         setupListeners()

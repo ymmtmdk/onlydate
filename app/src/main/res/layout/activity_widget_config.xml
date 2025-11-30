@@ -78,11 +78,4 @@
             android:text="Japanese" />
     </RadioGroup>
 
-    <Button
-        android:id="@+id/save_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Save" />
-
 </LinearLayout>
