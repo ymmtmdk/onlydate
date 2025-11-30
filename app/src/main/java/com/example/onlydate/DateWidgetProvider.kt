@@ -115,6 +115,11 @@ class DateWidgetProvider : AppWidgetProvider() {
 
         private const val PREF_LAST_TEMP_KEY = "last_temp"
 
+        // Public wrapper for fetching temperature from WidgetConfigActivity
+        internal fun fetchTemperaturePublic(context: Context): Double? {
+            return fetchTemperature(context)
+        }
+
         private fun fetchTemperature(context: Context): Double? {
             return try {
                 val url = URL("https://my-worker-dev.tmtfctry.workers.dev/")

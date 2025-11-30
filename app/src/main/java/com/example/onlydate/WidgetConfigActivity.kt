@@ -86,15 +86,34 @@ class WidgetConfigActivity : Activity() {
         val context: Context = this@WidgetConfigActivity
         saveSettings(context)
 
-        // Update ALL widgets
+        // Update ALL widgets with fresh temperature data
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val componentName = ComponentName(context, DateWidgetProvider::class.java)
         val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
-        DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds)
-
-        // Ensure the current widget is also updated (in case it's not in the list yet)
-        if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-            DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId)
+        
+        // Fetch temperature in background if enabled
+        val showTemp = WidgetConfigActivity.loadShowTemp(context)
+        if (showTemp) {
+            Thread {
+                try {
+                    val temp = DateWidgetProvider.fetchTemperaturePublic(context)
+                    DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds, temp)
+                    if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                        DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId, temp)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds)
+                    if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                        DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId)
+                    }
+                }
+            }.start()
+        } else {
+            DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds)
+            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId)
+            }
         }
     }
 
