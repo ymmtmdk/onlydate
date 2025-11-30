@@ -20,7 +20,7 @@ class WidgetConfigActivity : Activity() {
     private lateinit var backgroundColorInput: EditText
     private lateinit var opacitySeekBar: SeekBar
     private lateinit var showYearSwitch: SwitchCompat
-    private lateinit var showYearSwitch: SwitchCompat
+
     private lateinit var showDayOfWeekSwitch: SwitchCompat
     private lateinit var showTemperatureSwitch: SwitchCompat
     private lateinit var languageRadioGroup: RadioGroup
