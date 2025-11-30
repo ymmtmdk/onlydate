@@ -10,27 +10,12 @@ import android.view.View
 import android.widget.RemoteViews
 import java.text.SimpleDateFormat
 import java.util.*
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.net.URL
-import org.json.JSONObject
 
 class DateWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         // There may be multiple widgets active, so update all of them
-        val pendingResult = goAsync()
-        Thread {
-            try {
-                val temp = fetchTemperature(context)
-                updateAppWidget(context, appWidgetManager, appWidgetIds, temp)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                updateAppWidget(context, appWidgetManager, appWidgetIds)
-            } finally {
-                pendingResult.finish()
-            }
-        }.start()
+        updateAppWidget(context, appWidgetManager, appWidgetIds)
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
@@ -47,13 +32,13 @@ class DateWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
-        internal fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray, temp: Double? = null) {
+        internal fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
             for (appWidgetId in appWidgetIds) {
-                updateAppWidget(context, appWidgetManager, appWidgetId, temp)
+                updateAppWidget(context, appWidgetManager, appWidgetId)
             }
         }
 
-        internal fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int, temp: Double? = null) {
+        internal fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_layout)
 
             // Load global settings (no appWidgetId needed)
@@ -89,14 +74,7 @@ class DateWidgetProvider : AppWidgetProvider() {
                 dateString
             }
 
-            val displayTemp = temp ?: loadLastTemp(context)
-            val textWithTemp = if (displayTemp != null) {
-                "$finalText $displayTemp°C"
-            } else {
-                finalText
-            }
-
-            views.setTextViewText(R.id.widget_text, textWithTemp)
+            views.setTextViewText(R.id.widget_text, finalText)
 
             // Clicking the widget opens the configuration activity
             val intent = Intent(context, WidgetConfigActivity::class.java)
@@ -105,43 +83,6 @@ class DateWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
-        }
-
-        private const val PREF_LAST_TEMP_KEY = "last_temp"
-
-        private fun fetchTemperature(context: Context): Double? {
-            return try {
-                val url = URL("https://my-worker-dev.tmtfctry.workers.dev/")
-                val connection = url.openConnection()
-                connection.connectTimeout = 5000
-                connection.readTimeout = 5000
-                val stream = connection.getInputStream()
-                val reader = BufferedReader(InputStreamReader(stream))
-                val response = reader.readText()
-                reader.close()
-                
-                val json = JSONObject(response)
-                val tempArray = json.getJSONArray("temp")
-                val temp = tempArray.getDouble(0)
-                
-                saveLastTemp(context, temp)
-                temp
-            } catch (e: Exception) {
-                e.printStackTrace()
-                null
-            }
-        }
-
-        private fun saveLastTemp(context: Context, temp: Double) {
-            val prefs = context.getSharedPreferences(WidgetConfigActivity.PREFS_NAME, 0).edit()
-            prefs.putFloat(PREF_LAST_TEMP_KEY, temp.toFloat())
-            prefs.apply()
-        }
-
-        private fun loadLastTemp(context: Context): Double? {
-            val prefs = context.getSharedPreferences(WidgetConfigActivity.PREFS_NAME, 0)
-            if (!prefs.contains(PREF_LAST_TEMP_KEY)) return null
-            return prefs.getFloat(PREF_LAST_TEMP_KEY, 0f).toDouble()
         }
     }
 }
