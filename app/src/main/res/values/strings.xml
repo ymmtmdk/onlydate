@@ -19,4 +19,9 @@
     <string name="day_text_size">Day of Week Text Size</string>
     <string name="temp_text_size">Temperature Text Size</string>
     <string name="text_size_sp">%d sp</string>
+    <string name="layout_section">Layout</string>
+    <string name="layout_horizontal">Horizontal (One Row)</string>
+    <string name="layout_two_rows_temp">2 Rows (Temp Bottom)</string>
+    <string name="layout_two_rows_weekday_temp">2 Rows (Weekday + Temp Bottom)</string>
+    <string name="layout_three_rows">Vertical (3 Rows)</string>
 </resources>

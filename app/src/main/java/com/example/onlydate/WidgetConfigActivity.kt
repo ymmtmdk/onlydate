@@ -31,6 +31,7 @@ class WidgetConfigActivity : Activity() {
     private lateinit var showDayOfWeekSwitch: SwitchCompat
     private lateinit var showTemperatureSwitch: SwitchCompat
     private lateinit var languageRadioGroup: RadioGroup
+    private lateinit var layoutRadioGroup: RadioGroup
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +51,7 @@ class WidgetConfigActivity : Activity() {
         showDayOfWeekSwitch = findViewById(R.id.show_day_of_week_switch)
         showTemperatureSwitch = findViewById(R.id.show_temperature_switch)
         languageRadioGroup = findViewById(R.id.language_radio_group)
+        layoutRadioGroup = findViewById(R.id.layout_radio_group)
 
         val intent = intent
         val extras = intent.extras
@@ -128,6 +130,7 @@ class WidgetConfigActivity : Activity() {
         showDayOfWeekSwitch.setOnCheckedChangeListener { _, _ -> updateWidgets() }
         showTemperatureSwitch.setOnCheckedChangeListener { _, _ -> updateWidgets() }
         languageRadioGroup.setOnCheckedChangeListener { _, _ -> updateWidgets() }
+        layoutRadioGroup.setOnCheckedChangeListener { _, _ -> updateWidgets() }
     }
 
     private fun updateWidgets() {
@@ -193,6 +196,15 @@ class WidgetConfigActivity : Activity() {
             LANG_JAPANESE -> languageRadioGroup.check(R.id.lang_japanese)
             else -> languageRadioGroup.check(R.id.lang_system)
         }
+
+        val layoutType = prefs.getInt(PREF_LAYOUT_TYPE_KEY, LAYOUT_HORIZONTAL)
+        when (layoutType) {
+            LAYOUT_HORIZONTAL -> layoutRadioGroup.check(R.id.layout_horizontal)
+            LAYOUT_TWO_ROWS_TEMP -> layoutRadioGroup.check(R.id.layout_two_rows_temp)
+            LAYOUT_TWO_ROWS_WEEKDAY_TEMP -> layoutRadioGroup.check(R.id.layout_two_rows_weekday_temp)
+            LAYOUT_THREE_ROWS -> layoutRadioGroup.check(R.id.layout_three_rows)
+            else -> layoutRadioGroup.check(R.id.layout_horizontal)
+        }
     }
 
     private fun saveSettings(context: Context) {
@@ -214,6 +226,15 @@ class WidgetConfigActivity : Activity() {
         }
         prefs.putString(PREF_LANGUAGE_KEY, language)
 
+        val layoutType = when (layoutRadioGroup.checkedRadioButtonId) {
+            R.id.layout_horizontal -> LAYOUT_HORIZONTAL
+            R.id.layout_two_rows_temp -> LAYOUT_TWO_ROWS_TEMP
+            R.id.layout_two_rows_weekday_temp -> LAYOUT_TWO_ROWS_WEEKDAY_TEMP
+            R.id.layout_three_rows -> LAYOUT_THREE_ROWS
+            else -> LAYOUT_HORIZONTAL
+        }
+        prefs.putInt(PREF_LAYOUT_TYPE_KEY, layoutType)
+
         prefs.apply()
     }
 
@@ -229,10 +250,16 @@ class WidgetConfigActivity : Activity() {
         internal const val PREF_DAY_SIZE_KEY = "day_size"
         internal const val PREF_TEMP_SIZE_KEY = "temp_size"
         internal const val PREF_LANGUAGE_KEY = "language"
+        internal const val PREF_LAYOUT_TYPE_KEY = "layout_type"
 
         internal const val LANG_SYSTEM = "system"
         internal const val LANG_ENGLISH = "english"
         internal const val LANG_JAPANESE = "japanese"
+
+        internal const val LAYOUT_HORIZONTAL = 0
+        internal const val LAYOUT_TWO_ROWS_TEMP = 1
+        internal const val LAYOUT_TWO_ROWS_WEEKDAY_TEMP = 2
+        internal const val LAYOUT_THREE_ROWS = 3
 
         internal fun loadTextColor(context: Context): Int {
             val prefs = context.getSharedPreferences(PREFS_NAME, 0)
@@ -292,6 +319,11 @@ class WidgetConfigActivity : Activity() {
         internal fun loadTempSize(context: Context): Int {
             val prefs = context.getSharedPreferences(PREFS_NAME, 0)
             return prefs.getInt(PREF_TEMP_SIZE_KEY, 16)
+        }
+
+        internal fun loadLayoutType(context: Context): Int {
+            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
+            return prefs.getInt(PREF_LAYOUT_TYPE_KEY, LAYOUT_HORIZONTAL)
         }
     }
 }

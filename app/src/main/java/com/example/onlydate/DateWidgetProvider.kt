@@ -6,6 +6,8 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.text.TextPaint
+import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import java.text.SimpleDateFormat
@@ -55,8 +57,6 @@ class DateWidgetProvider : AppWidgetProvider() {
         }
 
         internal fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int, temp: Double? = null) {
-            val views = RemoteViews(context.packageName, R.layout.widget_layout)
-
             // Load global settings
             val textColor = WidgetConfigActivity.loadTextColor(context)
             val bgColor = WidgetConfigActivity.loadBgColor(context)
@@ -65,20 +65,16 @@ class DateWidgetProvider : AppWidgetProvider() {
             val showDayOfWeek = WidgetConfigActivity.loadShowDayOfWeek(context)
             val showTemp = WidgetConfigActivity.loadShowTemp(context)
             val language = WidgetConfigActivity.loadLanguage(context)
-            val dateSize = WidgetConfigActivity.loadDateSize(context)
-            val daySize = WidgetConfigActivity.loadDaySize(context)
-            val tempSize = WidgetConfigActivity.loadTempSize(context)
+            val dateSizeSp = WidgetConfigActivity.loadDateSize(context).toFloat()
+            val daySizeSp = WidgetConfigActivity.loadDaySize(context).toFloat()
+            val tempSizeSp = WidgetConfigActivity.loadTempSize(context).toFloat()
 
-            val finalBgColor = Color.argb(bgOpacity, Color.red(bgColor), Color.green(bgColor), Color.blue(bgColor))
-            views.setInt(R.id.widget_container, "setBackgroundColor", finalBgColor)
-
-            // Prepare date string
+            // Prepare strings
             val date = Date()
             val dateFormatString = if (showYear) "yyyy/MM/dd" else "MM/dd"
             val sdfDate = SimpleDateFormat(dateFormatString, Locale.getDefault())
             val dateString = sdfDate.format(date)
 
-            // Prepare day of week string
             val dayString = if (showDayOfWeek) {
                 val locale = when (language) {
                     WidgetConfigActivity.LANG_ENGLISH -> Locale.ENGLISH
@@ -91,74 +87,55 @@ class DateWidgetProvider : AppWidgetProvider() {
                 ""
             }
 
-            // Prepare temperature string
             val displayTemp = if (showTemp) {
                 temp ?: loadLastTemp(context)
             } else {
                 null
             }
             val tempString = if (displayTemp != null) {
-                "%.1f°".format(displayTemp)
+                "%.1f°C".format(displayTemp)
             } else {
                 ""
             }
 
-            // Calculate total text length to decide layout
-            val totalLength = dateString.length + dayString.length + tempString.length
-            val useVerticalLayout = totalLength > 18 // Threshold for switching to vertical
+            val layoutType = WidgetConfigActivity.loadLayoutType(context)
+            val layoutId = when (layoutType) {
+                WidgetConfigActivity.LAYOUT_HORIZONTAL -> R.layout.widget_horizontal
+                WidgetConfigActivity.LAYOUT_TWO_ROWS_TEMP -> R.layout.widget_two_rows_temp
+                WidgetConfigActivity.LAYOUT_TWO_ROWS_WEEKDAY_TEMP -> R.layout.widget_two_rows_weekday_temp
+                WidgetConfigActivity.LAYOUT_THREE_ROWS -> R.layout.widget_three_rows
+                else -> R.layout.widget_horizontal
+            }
+            val views = RemoteViews(context.packageName, layoutId)
 
-            if (useVerticalLayout) {
-                // Use vertical layout
-                views.setViewVisibility(R.id.horizontal_layout, View.GONE)
-                views.setViewVisibility(R.id.vertical_layout, View.VISIBLE)
+            val finalBgColor = Color.argb(bgOpacity, Color.red(bgColor), Color.green(bgColor), Color.blue(bgColor))
+            views.setInt(R.id.widget_container, "setBackgroundColor", finalBgColor)
 
-                views.setTextViewText(R.id.date_text_v, dateString)
-                views.setTextColor(R.id.date_text_v, textColor)
-                views.setTextViewTextSize(R.id.date_text_v, android.util.TypedValue.COMPLEX_UNIT_SP, dateSize.toFloat())
+            // Set text and styles
+            views.setTextViewText(R.id.text_date, dateString)
+            views.setTextColor(R.id.text_date, textColor)
+            views.setTextViewTextSize(R.id.text_date, TypedValue.COMPLEX_UNIT_SP, dateSizeSp)
 
-                if (showDayOfWeek) {
-                    views.setViewVisibility(R.id.day_text_v, View.VISIBLE)
-                    views.setTextViewText(R.id.day_text_v, dayString)
-                    views.setTextColor(R.id.day_text_v, textColor)
-                    views.setTextViewTextSize(R.id.day_text_v, android.util.TypedValue.COMPLEX_UNIT_SP, daySize.toFloat())
-                } else {
-                    views.setViewVisibility(R.id.day_text_v, View.GONE)
-                }
-
-                if (showTemp && tempString.isNotEmpty()) {
-                    views.setViewVisibility(R.id.temp_text_v, View.VISIBLE)
-                    views.setTextViewText(R.id.temp_text_v, tempString)
-                    views.setTextColor(R.id.temp_text_v, textColor)
-                    views.setTextViewTextSize(R.id.temp_text_v, android.util.TypedValue.COMPLEX_UNIT_SP, tempSize.toFloat())
-                } else {
-                    views.setViewVisibility(R.id.temp_text_v, View.GONE)
-                }
+            if (showDayOfWeek) {
+                views.setViewVisibility(R.id.text_weekday, View.VISIBLE)
+                // Add leading space if horizontal layout or same row
+                val dayText = if (layoutId == R.layout.widget_horizontal || layoutId == R.layout.widget_two_rows_temp) " $dayString" else dayString
+                views.setTextViewText(R.id.text_weekday, dayText)
+                views.setTextColor(R.id.text_weekday, textColor)
+                views.setTextViewTextSize(R.id.text_weekday, TypedValue.COMPLEX_UNIT_SP, daySizeSp)
             } else {
-                // Use horizontal layout
-                views.setViewVisibility(R.id.horizontal_layout, View.VISIBLE)
-                views.setViewVisibility(R.id.vertical_layout, View.GONE)
+                views.setViewVisibility(R.id.text_weekday, View.GONE)
+            }
 
-                views.setTextViewText(R.id.date_text, dateString)
-                views.setTextColor(R.id.date_text, textColor)
-                views.setTextViewTextSize(R.id.date_text, android.util.TypedValue.COMPLEX_UNIT_SP, dateSize.toFloat())
-
-                if (showDayOfWeek) {
-                    views.setViewVisibility(R.id.day_text, View.VISIBLE)
-                    views.setTextViewText(R.id.day_text, " " + dayString)
-                    views.setTextColor(R.id.day_text, textColor)
-                    views.setTextViewTextSize(R.id.day_text, android.util.TypedValue.COMPLEX_UNIT_SP, daySize.toFloat())
-                } else {
-                    views.setViewVisibility(R.id.day_text, View.GONE)
-                }
-
-                if (showTemp && tempString.isNotEmpty()) {
-                    views.setViewVisibility(R.id.temp_text, View.VISIBLE)
-                    views.setTextViewText(R.id.temp_text, " " + tempString)
-                    views.setTextColor(R.id.temp_text, textColor)
-                    views.setTextViewTextSize(R.id.temp_text, android.util.TypedValue.COMPLEX_UNIT_SP, tempSize.toFloat())
-                } else {
-                    views.setViewVisibility(R.id.temp_text, View.GONE)
-                }
+            if (showTemp && tempString.isNotEmpty()) {
+                views.setViewVisibility(R.id.text_temp, View.VISIBLE)
+                // Add leading space if horizontal layout or same row
+                val tempText = if (layoutId == R.layout.widget_horizontal || layoutId == R.layout.widget_two_rows_weekday_temp) " $tempString" else tempString
+                views.setTextViewText(R.id.text_temp, tempText)
+                views.setTextColor(R.id.text_temp, textColor)
+                views.setTextViewTextSize(R.id.text_temp, TypedValue.COMPLEX_UNIT_SP, tempSizeSp)
+            } else {
+                views.setViewVisibility(R.id.text_temp, View.GONE)
             }
 
             // Clicking the widget opens the configuration activity
