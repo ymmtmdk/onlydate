@@ -3,24 +3,23 @@ package com.example.onlydate
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.text.TextPaint
 import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
-import java.text.SimpleDateFormat
-import java.util.*
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.*
 import org.json.JSONArray
 
 class DateWidgetProvider : AppWidgetProvider() {
 
-    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        // There may be multiple widgets active, so update all of them
+    private fun doUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         val pendingResult = goAsync()
         Thread {
             try {
@@ -34,6 +33,20 @@ class DateWidgetProvider : AppWidgetProvider() {
                 pendingResult.finish()
             }
         }.start()
+    }
+
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        doUpdate(context, appWidgetManager, appWidgetIds)
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == Intent.ACTION_SCREEN_ON) {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val thisAppWidget = ComponentName(context.packageName, javaClass.name)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(thisAppWidget)
+            doUpdate(context, appWidgetManager, appWidgetIds)
+        }
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
@@ -156,7 +169,7 @@ class DateWidgetProvider : AppWidgetProvider() {
 
         private fun fetchTemperature(context: Context): Double? {
             return try {
-                val url = URL("https://my-worker-dev.tmtfctry.workers.dev/")
+                val url = URL("https://my-worker-dev.tmtfctry.workers.dev/46106/temp")
                 val connection = url.openConnection()
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000
