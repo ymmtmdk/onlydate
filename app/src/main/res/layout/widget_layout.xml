@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_container"
     android:layout_width="match_parent"
@@ -6,16 +7,76 @@
     android:orientation="vertical"
     android:padding="4dp">
 
-    <TextView
-        android:id="@+id/widget_text"
+    <!-- Horizontal layout for short text -->
+    <LinearLayout
+        android:id="@+id/horizontal_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:text="Date (Day)"
-        android:maxLines="2"
-        android:autoSizeTextType="uniform"
-        android:autoSizeMinTextSize="8sp"
-        android:autoSizeMaxTextSize="100sp"
-        android:autoSizeStepGranularity="1sp" />
+        android:orientation="horizontal"
+        android:visibility="visible">
+
+        <TextView
+            android:id="@+id/date_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="11/30"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/day_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text=" (Sat)"
+            android:textSize="16sp"
+            android:layout_marginStart="4dp" />
+
+        <TextView
+            android:id="@+id/temp_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text=" 15.3°"
+            android:textSize="16sp"
+            android:layout_marginStart="4dp" />
+    </LinearLayout>
+
+    <!-- Vertical layout for long text -->
+    <LinearLayout
+        android:id="@+id/vertical_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/date_text_v"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="11/30"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/day_text_v"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="(Sat)"
+            android:textSize="16sp"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:id="@+id/temp_text_v"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="15.3°"
+            android:textSize="16sp"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
 
 </LinearLayout>

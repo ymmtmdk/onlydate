@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.widget.EditText
 import android.widget.RadioGroup
 import android.widget.SeekBar
+import android.widget.TextView
 import androidx.appcompat.widget.SwitchCompat
 
 class WidgetConfigActivity : Activity() {
@@ -20,8 +21,13 @@ class WidgetConfigActivity : Activity() {
     private lateinit var textColorInput: EditText
     private lateinit var backgroundColorInput: EditText
     private lateinit var opacitySeekBar: SeekBar
+    private lateinit var dateSizeSeekBar: SeekBar
+    private lateinit var daySizeSeekBar: SeekBar
+    private lateinit var tempSizeSeekBar: SeekBar
+    private lateinit var dateSizeLabel: TextView
+    private lateinit var daySizeLabel: TextView
+    private lateinit var tempSizeLabel: TextView
     private lateinit var showYearSwitch: SwitchCompat
-
     private lateinit var showDayOfWeekSwitch: SwitchCompat
     private lateinit var showTemperatureSwitch: SwitchCompat
     private lateinit var languageRadioGroup: RadioGroup
@@ -34,6 +40,12 @@ class WidgetConfigActivity : Activity() {
         textColorInput = findViewById(R.id.text_color_input)
         backgroundColorInput = findViewById(R.id.background_color_input)
         opacitySeekBar = findViewById(R.id.opacity_seekbar)
+        dateSizeSeekBar = findViewById(R.id.date_size_seekbar)
+        daySizeSeekBar = findViewById(R.id.day_size_seekbar)
+        tempSizeSeekBar = findViewById(R.id.temp_size_seekbar)
+        dateSizeLabel = findViewById(R.id.date_size_label)
+        daySizeLabel = findViewById(R.id.day_size_label)
+        tempSizeLabel = findViewById(R.id.temp_size_label)
         showYearSwitch = findViewById(R.id.show_year_switch)
         showDayOfWeekSwitch = findViewById(R.id.show_day_of_week_switch)
         showTemperatureSwitch = findViewById(R.id.show_temperature_switch)
@@ -68,6 +80,42 @@ class WidgetConfigActivity : Activity() {
 
         opacitySeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    updateWidgets()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        dateSizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val size = progress + 8
+                dateSizeLabel.text = "$size sp"
+                if (fromUser) {
+                    updateWidgets()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        daySizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val size = progress + 8
+                daySizeLabel.text = "$size sp"
+                if (fromUser) {
+                    updateWidgets()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        tempSizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val size = progress + 8
+                tempSizeLabel.text = "$size sp"
                 if (fromUser) {
                     updateWidgets()
                 }
@@ -122,6 +170,19 @@ class WidgetConfigActivity : Activity() {
         textColorInput.setText(prefs.getString(PREF_TEXT_COLOR_KEY, "#FFFFFF") ?: "#FFFFFF")
         backgroundColorInput.setText(prefs.getString(PREF_BG_COLOR_KEY, "#000000") ?: "#000000")
         opacitySeekBar.progress = prefs.getInt(PREF_BG_OPACITY_KEY, 128)
+        
+        val dateSize = prefs.getInt(PREF_DATE_SIZE_KEY, 24)
+        val daySize = prefs.getInt(PREF_DAY_SIZE_KEY, 16)
+        val tempSize = prefs.getInt(PREF_TEMP_SIZE_KEY, 16)
+        
+        dateSizeSeekBar.progress = dateSize - 8
+        daySizeSeekBar.progress = daySize - 8
+        tempSizeSeekBar.progress = tempSize - 8
+        
+        dateSizeLabel.text = "$dateSize sp"
+        daySizeLabel.text = "$daySize sp"
+        tempSizeLabel.text = "$tempSize sp"
+        
         showYearSwitch.isChecked = prefs.getBoolean(PREF_SHOW_YEAR_KEY, true)
         showDayOfWeekSwitch.isChecked = prefs.getBoolean(PREF_SHOW_DOW_KEY, true)
         showTemperatureSwitch.isChecked = prefs.getBoolean(PREF_SHOW_TEMP_KEY, false)
@@ -139,6 +200,9 @@ class WidgetConfigActivity : Activity() {
         prefs.putString(PREF_TEXT_COLOR_KEY, textColorInput.text.toString())
         prefs.putString(PREF_BG_COLOR_KEY, backgroundColorInput.text.toString())
         prefs.putInt(PREF_BG_OPACITY_KEY, opacitySeekBar.progress)
+        prefs.putInt(PREF_DATE_SIZE_KEY, dateSizeSeekBar.progress + 8)
+        prefs.putInt(PREF_DAY_SIZE_KEY, daySizeSeekBar.progress + 8)
+        prefs.putInt(PREF_TEMP_SIZE_KEY, tempSizeSeekBar.progress + 8)
         prefs.putBoolean(PREF_SHOW_YEAR_KEY, showYearSwitch.isChecked)
         prefs.putBoolean(PREF_SHOW_DOW_KEY, showDayOfWeekSwitch.isChecked)
         prefs.putBoolean(PREF_SHOW_TEMP_KEY, showTemperatureSwitch.isChecked)
@@ -161,6 +225,9 @@ class WidgetConfigActivity : Activity() {
         internal const val PREF_SHOW_YEAR_KEY = "show_year"
         internal const val PREF_SHOW_DOW_KEY = "show_dow"
         internal const val PREF_SHOW_TEMP_KEY = "show_temp"
+        internal const val PREF_DATE_SIZE_KEY = "date_size"
+        internal const val PREF_DAY_SIZE_KEY = "day_size"
+        internal const val PREF_TEMP_SIZE_KEY = "temp_size"
         internal const val PREF_LANGUAGE_KEY = "language"
 
         internal const val LANG_SYSTEM = "system"
@@ -210,6 +277,21 @@ class WidgetConfigActivity : Activity() {
         internal fun loadLanguage(context: Context): String {
             val prefs = context.getSharedPreferences(PREFS_NAME, 0)
             return prefs.getString(PREF_LANGUAGE_KEY, LANG_SYSTEM) ?: LANG_SYSTEM
+        }
+
+        internal fun loadDateSize(context: Context): Int {
+            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
+            return prefs.getInt(PREF_DATE_SIZE_KEY, 24)
+        }
+
+        internal fun loadDaySize(context: Context): Int {
+            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
+            return prefs.getInt(PREF_DAY_SIZE_KEY, 16)
+        }
+
+        internal fun loadTempSize(context: Context): Int {
+            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
+            return prefs.getInt(PREF_TEMP_SIZE_KEY, 16)
         }
     }
 }

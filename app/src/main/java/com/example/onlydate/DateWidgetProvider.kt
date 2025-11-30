@@ -8,13 +8,12 @@ import android.content.Intent
 import android.graphics.Color
 import android.view.View
 import android.widget.RemoteViews
-import org.json.JSONArray
 import java.text.SimpleDateFormat
 import java.util.*
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.URL
-import org.json.JSONObject
+import org.json.JSONArray
 
 class DateWidgetProvider : AppWidgetProvider() {
 
@@ -58,7 +57,7 @@ class DateWidgetProvider : AppWidgetProvider() {
         internal fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int, temp: Double? = null) {
             val views = RemoteViews(context.packageName, R.layout.widget_layout)
 
-            // Load global settings (no appWidgetId needed)
+            // Load global settings
             val textColor = WidgetConfigActivity.loadTextColor(context)
             val bgColor = WidgetConfigActivity.loadBgColor(context)
             val bgOpacity = WidgetConfigActivity.loadBgOpacity(context)
@@ -66,44 +65,101 @@ class DateWidgetProvider : AppWidgetProvider() {
             val showDayOfWeek = WidgetConfigActivity.loadShowDayOfWeek(context)
             val showTemp = WidgetConfigActivity.loadShowTemp(context)
             val language = WidgetConfigActivity.loadLanguage(context)
-
-            views.setTextColor(R.id.widget_text, textColor)
+            val dateSize = WidgetConfigActivity.loadDateSize(context)
+            val daySize = WidgetConfigActivity.loadDaySize(context)
+            val tempSize = WidgetConfigActivity.loadTempSize(context)
 
             val finalBgColor = Color.argb(bgOpacity, Color.red(bgColor), Color.green(bgColor), Color.blue(bgColor))
             views.setInt(R.id.widget_container, "setBackgroundColor", finalBgColor)
 
+            // Prepare date string
             val date = Date()
             val dateFormatString = if (showYear) "yyyy/MM/dd" else "MM/dd"
             val sdfDate = SimpleDateFormat(dateFormatString, Locale.getDefault())
             val dateString = sdfDate.format(date)
 
-            val finalText = if (showDayOfWeek) {
+            // Prepare day of week string
+            val dayString = if (showDayOfWeek) {
                 val locale = when (language) {
                     WidgetConfigActivity.LANG_ENGLISH -> Locale.ENGLISH
                     WidgetConfigActivity.LANG_JAPANESE -> Locale.JAPAN
                     else -> Locale.getDefault()
                 }
-                
-                // Use "EEE" for abbreviated day name (e.g., Mon, 月)
                 val sdfDay = SimpleDateFormat("EEE", locale)
-                val dayString = sdfDay.format(date)
-                "$dateString ($dayString)"
+                "(" + sdfDay.format(date) + ")"
             } else {
-                dateString
+                ""
             }
 
+            // Prepare temperature string
             val displayTemp = if (showTemp) {
                 temp ?: loadLastTemp(context)
             } else {
                 null
             }
-            val textWithTemp = if (displayTemp != null) {
-                "$finalText %.1f°C".format(displayTemp)
+            val tempString = if (displayTemp != null) {
+                "%.1f°".format(displayTemp)
             } else {
-                finalText
+                ""
             }
 
-            views.setTextViewText(R.id.widget_text, textWithTemp)
+            // Calculate total text length to decide layout
+            val totalLength = dateString.length + dayString.length + tempString.length
+            val useVerticalLayout = totalLength > 18 // Threshold for switching to vertical
+
+            if (useVerticalLayout) {
+                // Use vertical layout
+                views.setViewVisibility(R.id.horizontal_layout, View.GONE)
+                views.setViewVisibility(R.id.vertical_layout, View.VISIBLE)
+
+                views.setTextViewText(R.id.date_text_v, dateString)
+                views.setTextColor(R.id.date_text_v, textColor)
+                views.setTextViewTextSize(R.id.date_text_v, android.util.TypedValue.COMPLEX_UNIT_SP, dateSize.toFloat())
+
+                if (showDayOfWeek) {
+                    views.setViewVisibility(R.id.day_text_v, View.VISIBLE)
+                    views.setTextViewText(R.id.day_text_v, dayString)
+                    views.setTextColor(R.id.day_text_v, textColor)
+                    views.setTextViewTextSize(R.id.day_text_v, android.util.TypedValue.COMPLEX_UNIT_SP, daySize.toFloat())
+                } else {
+                    views.setViewVisibility(R.id.day_text_v, View.GONE)
+                }
+
+                if (showTemp && tempString.isNotEmpty()) {
+                    views.setViewVisibility(R.id.temp_text_v, View.VISIBLE)
+                    views.setTextViewText(R.id.temp_text_v, tempString)
+                    views.setTextColor(R.id.temp_text_v, textColor)
+                    views.setTextViewTextSize(R.id.temp_text_v, android.util.TypedValue.COMPLEX_UNIT_SP, tempSize.toFloat())
+                } else {
+                    views.setViewVisibility(R.id.temp_text_v, View.GONE)
+                }
+            } else {
+                // Use horizontal layout
+                views.setViewVisibility(R.id.horizontal_layout, View.VISIBLE)
+                views.setViewVisibility(R.id.vertical_layout, View.GONE)
+
+                views.setTextViewText(R.id.date_text, dateString)
+                views.setTextColor(R.id.date_text, textColor)
+                views.setTextViewTextSize(R.id.date_text, android.util.TypedValue.COMPLEX_UNIT_SP, dateSize.toFloat())
+
+                if (showDayOfWeek) {
+                    views.setViewVisibility(R.id.day_text, View.VISIBLE)
+                    views.setTextViewText(R.id.day_text, " " + dayString)
+                    views.setTextColor(R.id.day_text, textColor)
+                    views.setTextViewTextSize(R.id.day_text, android.util.TypedValue.COMPLEX_UNIT_SP, daySize.toFloat())
+                } else {
+                    views.setViewVisibility(R.id.day_text, View.GONE)
+                }
+
+                if (showTemp && tempString.isNotEmpty()) {
+                    views.setViewVisibility(R.id.temp_text, View.VISIBLE)
+                    views.setTextViewText(R.id.temp_text, " " + tempString)
+                    views.setTextColor(R.id.temp_text, textColor)
+                    views.setTextViewTextSize(R.id.temp_text, android.util.TypedValue.COMPLEX_UNIT_SP, tempSize.toFloat())
+                } else {
+                    views.setViewVisibility(R.id.temp_text, View.GONE)
+                }
+            }
 
             // Clicking the widget opens the configuration activity
             val intent = Intent(context, WidgetConfigActivity::class.java)
@@ -123,7 +179,7 @@ class DateWidgetProvider : AppWidgetProvider() {
 
         private fun fetchTemperature(context: Context): Double? {
             return try {
-                val url = URL("https://my-worker-dev.tmtfctry.workers.dev/46106/temp")
+                val url = URL("https://my-worker-dev.tmtfctry.workers.dev/")
                 val connection = url.openConnection()
                 connection.connectTimeout = 5000
                 connection.readTimeout = 5000

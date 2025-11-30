@@ -15,4 +15,8 @@
     <string name="lang_system">System Default</string>
     <string name="lang_english">English</string>
     <string name="lang_japanese">Japanese</string>
+    <string name="date_text_size">Date Text Size</string>
+    <string name="day_text_size">Day of Week Text Size</string>
+    <string name="temp_text_size">Temperature Text Size</string>
+    <string name="text_size_sp">%d sp</string>
 </resources>
