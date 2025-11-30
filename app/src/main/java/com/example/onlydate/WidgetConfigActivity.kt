@@ -2,6 +2,7 @@ package com.example.onlydate
 
 import android.app.Activity
 import android.appwidget.AppWidgetManager
+
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -20,7 +21,9 @@ class WidgetConfigActivity : Activity() {
     private lateinit var backgroundColorInput: EditText
     private lateinit var opacitySeekBar: SeekBar
     private lateinit var showYearSwitch: SwitchCompat
+
     private lateinit var showDayOfWeekSwitch: SwitchCompat
+    private lateinit var showTemperatureSwitch: SwitchCompat
     private lateinit var languageRadioGroup: RadioGroup
 
     public override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,6 +36,7 @@ class WidgetConfigActivity : Activity() {
         opacitySeekBar = findViewById(R.id.opacity_seekbar)
         showYearSwitch = findViewById(R.id.show_year_switch)
         showDayOfWeekSwitch = findViewById(R.id.show_day_of_week_switch)
+        showTemperatureSwitch = findViewById(R.id.show_temperature_switch)
         languageRadioGroup = findViewById(R.id.language_radio_group)
 
         val intent = intent
@@ -45,13 +49,6 @@ class WidgetConfigActivity : Activity() {
 
         // Always load global settings
         loadSettings()
-
-        // Set result OK immediately if it's a widget configuration
-        if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-            val resultValue = Intent()
-            resultValue.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-            setResult(RESULT_OK, resultValue)
-        }
 
         // Setup listeners for instant updates
         setupListeners()
@@ -81,6 +78,7 @@ class WidgetConfigActivity : Activity() {
 
         showYearSwitch.setOnCheckedChangeListener { _, _ -> updateWidgets() }
         showDayOfWeekSwitch.setOnCheckedChangeListener { _, _ -> updateWidgets() }
+        showTemperatureSwitch.setOnCheckedChangeListener { _, _ -> updateWidgets() }
         languageRadioGroup.setOnCheckedChangeListener { _, _ -> updateWidgets() }
     }
 
@@ -88,11 +86,35 @@ class WidgetConfigActivity : Activity() {
         val context: Context = this@WidgetConfigActivity
         saveSettings(context)
 
-        // Update ALL widgets
+        // Update ALL widgets with fresh temperature data
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val componentName = ComponentName(context, DateWidgetProvider::class.java)
         val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
-        DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds)
+        
+        // Fetch temperature in background if enabled
+        val showTemp = WidgetConfigActivity.loadShowTemp(context)
+        if (showTemp) {
+            Thread {
+                try {
+                    val temp = DateWidgetProvider.fetchTemperaturePublic(context)
+                    DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds, temp)
+                    if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                        DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId, temp)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds)
+                    if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                        DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId)
+                    }
+                }
+            }.start()
+        } else {
+            DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds)
+            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId)
+            }
+        }
     }
 
     private fun loadSettings() {
@@ -102,6 +124,7 @@ class WidgetConfigActivity : Activity() {
         opacitySeekBar.progress = prefs.getInt(PREF_BG_OPACITY_KEY, 128)
         showYearSwitch.isChecked = prefs.getBoolean(PREF_SHOW_YEAR_KEY, true)
         showDayOfWeekSwitch.isChecked = prefs.getBoolean(PREF_SHOW_DOW_KEY, true)
+        showTemperatureSwitch.isChecked = prefs.getBoolean(PREF_SHOW_TEMP_KEY, false)
 
         val language = prefs.getString(PREF_LANGUAGE_KEY, LANG_SYSTEM) ?: LANG_SYSTEM
         when (language) {
@@ -118,6 +141,7 @@ class WidgetConfigActivity : Activity() {
         prefs.putInt(PREF_BG_OPACITY_KEY, opacitySeekBar.progress)
         prefs.putBoolean(PREF_SHOW_YEAR_KEY, showYearSwitch.isChecked)
         prefs.putBoolean(PREF_SHOW_DOW_KEY, showDayOfWeekSwitch.isChecked)
+        prefs.putBoolean(PREF_SHOW_TEMP_KEY, showTemperatureSwitch.isChecked)
 
         val language = when (languageRadioGroup.checkedRadioButtonId) {
             R.id.lang_english -> LANG_ENGLISH
@@ -136,6 +160,7 @@ class WidgetConfigActivity : Activity() {
         internal const val PREF_BG_OPACITY_KEY = "bg_opacity"
         internal const val PREF_SHOW_YEAR_KEY = "show_year"
         internal const val PREF_SHOW_DOW_KEY = "show_dow"
+        internal const val PREF_SHOW_TEMP_KEY = "show_temp"
         internal const val PREF_LANGUAGE_KEY = "language"
 
         internal const val LANG_SYSTEM = "system"
@@ -175,6 +200,11 @@ class WidgetConfigActivity : Activity() {
         internal fun loadShowDayOfWeek(context: Context): Boolean {
             val prefs = context.getSharedPreferences(PREFS_NAME, 0)
             return prefs.getBoolean(PREF_SHOW_DOW_KEY, true)
+        }
+
+        internal fun loadShowTemp(context: Context): Boolean {
+            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
+            return prefs.getBoolean(PREF_SHOW_TEMP_KEY, false)
         }
 
         internal fun loadLanguage(context: Context): String {

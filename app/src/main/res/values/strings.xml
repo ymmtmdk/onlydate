@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">onlydate</string>
+    <string name="show_temperature">Show Temperature</string>
+    <string name="show_day_of_week">Show Day of Week</string>
 </resources>
