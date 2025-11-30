@@ -131,7 +131,7 @@ class DateWidgetProvider : AppWidgetProvider() {
                 val reader = BufferedReader(InputStreamReader(stream))
                 val response = reader.readText()
                 reader.close()
-                
+
                 val temp = JSONArray(response).getDouble(0)
                 saveLastTemp(context, temp)
                 temp
