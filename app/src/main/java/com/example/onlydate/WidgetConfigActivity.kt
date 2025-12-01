@@ -311,18 +311,41 @@ class WidgetConfigActivity : Activity() {
     private fun checkExactAlarmPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            if (!alarmManager.canScheduleExactAlarms()) {
+            val canSchedule = alarmManager.canScheduleExactAlarms()
+            Logger.d(TAG, "Checking exact alarm permission: canSchedule=$canSchedule")
+            
+            if (!canSchedule) {
                 AlertDialog.Builder(this)
                     .setTitle("Permission Required")
                     .setMessage("To update the widget precisely every minute, please grant the 'Alarms & reminders' permission.")
                     .setPositiveButton("Grant") { _, _ ->
-                        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                            data = Uri.parse("package:${packageName}")
+                        try {
+                            // Try app-specific intent first
+                            val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                                data = Uri.parse("package:${packageName}")
+                            }
+                            Logger.d(TAG, "Opening app-specific alarm permission settings")
+                            startActivity(intent)
+                        } catch (e: Exception) {
+                            // Fallback to general alarm settings if app-specific fails
+                            Logger.w(TAG, "Failed to open app-specific settings, trying general settings", e)
+                            try {
+                                val fallbackIntent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                                startActivity(fallbackIntent)
+                            } catch (e2: Exception) {
+                                Logger.e(TAG, "Failed to open alarm settings", e2)
+                                android.widget.Toast.makeText(
+                                    this,
+                                    "Please enable 'Alarms & reminders' permission in Settings",
+                                    android.widget.Toast.LENGTH_LONG
+                                ).show()
+                            }
                         }
-                        startActivity(intent)
                     }
                     .setNegativeButton("Cancel", null)
                     .show()
+            } else {
+                Logger.d(TAG, "Exact alarm permission already granted")
             }
         }
     }

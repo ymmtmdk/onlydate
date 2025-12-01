@@ -69,16 +69,20 @@ class DateWidgetProvider : AppWidgetProvider() {
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        // Start the foreground service to listen for device unlock
-        Logger.d(TAG, "First widget added, starting WidgetUpdateService")
+        Logger.d(TAG, "First widget added")
+        
+        // Schedule alarm FIRST to trigger system recognition of permission need
+        scheduleNextUpdate(context)
+        scheduleWork(context)
+        
+        // Then start the foreground service to listen for device unlock
+        Logger.d(TAG, "Starting WidgetUpdateService")
         val serviceIntent = Intent(context, WidgetUpdateService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(serviceIntent)
         } else {
             context.startService(serviceIntent)
         }
-        scheduleNextUpdate(context)
-        scheduleWork(context)
     }
 
     override fun onDisabled(context: Context) {
