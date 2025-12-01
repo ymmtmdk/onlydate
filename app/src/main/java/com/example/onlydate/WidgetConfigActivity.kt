@@ -111,7 +111,7 @@ class WidgetConfigActivity : Activity() {
     private fun setupSeekBarListener(seekBar: SeekBar, label: TextView) {
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val size = progress + 8
+                val size = progress + MIN_TEXT_SIZE
                 label.text = "$size sp"
                 if (fromUser) {
                     updateWidgets()
@@ -151,26 +151,26 @@ class WidgetConfigActivity : Activity() {
 
     private fun loadSettings() {
         Log.d(TAG, "Loading settings")
-        val prefs = getSharedPreferences(PREFS_NAME, 0)
-        textColorInput.setText(prefs.getString(PREF_TEXT_COLOR_KEY, "#FFFFFF") ?: "#FFFFFF")
-        backgroundColorInput.setText(prefs.getString(PREF_BG_COLOR_KEY, "#000000") ?: "#000000")
-        opacitySeekBar.progress = prefs.getInt(PREF_BG_OPACITY_KEY, 128)
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        textColorInput.setText(prefs.getString(PREF_TEXT_COLOR_KEY, DEFAULT_TEXT_COLOR) ?: DEFAULT_TEXT_COLOR)
+        backgroundColorInput.setText(prefs.getString(PREF_BG_COLOR_KEY, DEFAULT_BG_COLOR) ?: DEFAULT_BG_COLOR)
+        opacitySeekBar.progress = prefs.getInt(PREF_BG_OPACITY_KEY, DEFAULT_BG_OPACITY)
 
-        val dateSize = prefs.getInt(PREF_DATE_SIZE_KEY, 24)
-        val daySize = prefs.getInt(PREF_DAY_SIZE_KEY, 16)
-        val tempSize = prefs.getInt(PREF_TEMP_SIZE_KEY, 16)
+        val dateSize = prefs.getInt(PREF_DATE_SIZE_KEY, DEFAULT_DATE_SIZE)
+        val daySize = prefs.getInt(PREF_DAY_SIZE_KEY, DEFAULT_DAY_SIZE)
+        val tempSize = prefs.getInt(PREF_TEMP_SIZE_KEY, DEFAULT_TEMP_SIZE)
 
-        dateSizeSeekBar.progress = dateSize - 8
-        daySizeSeekBar.progress = daySize - 8
-        tempSizeSeekBar.progress = tempSize - 8
+        dateSizeSeekBar.progress = dateSize - MIN_TEXT_SIZE
+        daySizeSeekBar.progress = daySize - MIN_TEXT_SIZE
+        tempSizeSeekBar.progress = tempSize - MIN_TEXT_SIZE
 
         dateSizeLabel.text = "$dateSize sp"
         daySizeLabel.text = "$daySize sp"
         tempSizeLabel.text = "$tempSize sp"
 
-        showYearSwitch.isChecked = prefs.getBoolean(PREF_SHOW_YEAR_KEY, true)
-        showDayOfWeekSwitch.isChecked = prefs.getBoolean(PREF_SHOW_DOW_KEY, true)
-        showTemperatureSwitch.isChecked = prefs.getBoolean(PREF_SHOW_TEMP_KEY, false)
+        showYearSwitch.isChecked = prefs.getBoolean(PREF_SHOW_YEAR_KEY, DEFAULT_SHOW_YEAR)
+        showDayOfWeekSwitch.isChecked = prefs.getBoolean(PREF_SHOW_DOW_KEY, DEFAULT_SHOW_DOW)
+        showTemperatureSwitch.isChecked = prefs.getBoolean(PREF_SHOW_TEMP_KEY, DEFAULT_SHOW_TEMP)
 
         val language = prefs.getString(PREF_LANGUAGE_KEY, LANG_SYSTEM) ?: LANG_SYSTEM
         when (language) {
@@ -192,13 +192,13 @@ class WidgetConfigActivity : Activity() {
 
     private fun saveSettings(context: Context) {
         Log.d(TAG, "Saving settings")
-        val prefs = context.getSharedPreferences(PREFS_NAME, 0).edit()
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
         prefs.putString(PREF_TEXT_COLOR_KEY, textColorInput.text.toString())
         prefs.putString(PREF_BG_COLOR_KEY, backgroundColorInput.text.toString())
         prefs.putInt(PREF_BG_OPACITY_KEY, opacitySeekBar.progress)
-        prefs.putInt(PREF_DATE_SIZE_KEY, dateSizeSeekBar.progress + 8)
-        prefs.putInt(PREF_DAY_SIZE_KEY, daySizeSeekBar.progress + 8)
-        prefs.putInt(PREF_TEMP_SIZE_KEY, tempSizeSeekBar.progress + 8)
+        prefs.putInt(PREF_DATE_SIZE_KEY, dateSizeSeekBar.progress + MIN_TEXT_SIZE)
+        prefs.putInt(PREF_DAY_SIZE_KEY, daySizeSeekBar.progress + MIN_TEXT_SIZE)
+        prefs.putInt(PREF_TEMP_SIZE_KEY, tempSizeSeekBar.progress + MIN_TEXT_SIZE)
         prefs.putBoolean(PREF_SHOW_YEAR_KEY, showYearSwitch.isChecked)
         prefs.putBoolean(PREF_SHOW_DOW_KEY, showDayOfWeekSwitch.isChecked)
         prefs.putBoolean(PREF_SHOW_TEMP_KEY, showTemperatureSwitch.isChecked)
@@ -248,8 +248,8 @@ class WidgetConfigActivity : Activity() {
         internal const val LAYOUT_THREE_ROWS = 3
 
         internal fun loadTextColor(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
-            val colorString = prefs.getString(PREF_TEXT_COLOR_KEY, "#FFFFFF") ?: "#FFFFFF"
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val colorString = prefs.getString(PREF_TEXT_COLOR_KEY, DEFAULT_TEXT_COLOR) ?: DEFAULT_TEXT_COLOR
             return try {
                 Color.parseColor(colorString)
             } catch (e: IllegalArgumentException) {
@@ -258,8 +258,8 @@ class WidgetConfigActivity : Activity() {
         }
 
         internal fun loadBgColor(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
-            val colorString = prefs.getString(PREF_BG_COLOR_KEY, "#000000") ?: "#000000"
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val colorString = prefs.getString(PREF_BG_COLOR_KEY, DEFAULT_BG_COLOR) ?: DEFAULT_BG_COLOR
             return try {
                 Color.parseColor(colorString)
             } catch (e: IllegalArgumentException) {
@@ -268,48 +268,59 @@ class WidgetConfigActivity : Activity() {
         }
 
         internal fun loadBgOpacity(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
-            return prefs.getInt(PREF_BG_OPACITY_KEY, 128)
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return prefs.getInt(PREF_BG_OPACITY_KEY, DEFAULT_BG_OPACITY)
         }
 
         internal fun loadShowYear(context: Context): Boolean {
-            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
-            return prefs.getBoolean(PREF_SHOW_YEAR_KEY, true)
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return prefs.getBoolean(PREF_SHOW_YEAR_KEY, DEFAULT_SHOW_YEAR)
         }
 
         internal fun loadShowDayOfWeek(context: Context): Boolean {
-            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
-            return prefs.getBoolean(PREF_SHOW_DOW_KEY, true)
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return prefs.getBoolean(PREF_SHOW_DOW_KEY, DEFAULT_SHOW_DOW)
         }
 
         internal fun loadShowTemp(context: Context): Boolean {
-            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
-            return prefs.getBoolean(PREF_SHOW_TEMP_KEY, false)
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return prefs.getBoolean(PREF_SHOW_TEMP_KEY, DEFAULT_SHOW_TEMP)
         }
 
         internal fun loadLanguage(context: Context): String {
-            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             return prefs.getString(PREF_LANGUAGE_KEY, LANG_SYSTEM) ?: LANG_SYSTEM
         }
 
         internal fun loadDateSize(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
-            return prefs.getInt(PREF_DATE_SIZE_KEY, 24)
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return prefs.getInt(PREF_DATE_SIZE_KEY, DEFAULT_DATE_SIZE)
         }
 
         internal fun loadDaySize(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
-            return prefs.getInt(PREF_DAY_SIZE_KEY, 16)
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return prefs.getInt(PREF_DAY_SIZE_KEY, DEFAULT_DAY_SIZE)
         }
 
         internal fun loadTempSize(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
-            return prefs.getInt(PREF_TEMP_SIZE_KEY, 16)
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return prefs.getInt(PREF_TEMP_SIZE_KEY, DEFAULT_TEMP_SIZE)
         }
 
         internal fun loadLayoutType(context: Context): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, 0)
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             return prefs.getInt(PREF_LAYOUT_TYPE_KEY, LAYOUT_HORIZONTAL)
         }
+
+        private const val MIN_TEXT_SIZE = 8
+        private const val DEFAULT_TEXT_COLOR = "#FFFFFF"
+        private const val DEFAULT_BG_COLOR = "#000000"
+        private const val DEFAULT_BG_OPACITY = 128
+        private const val DEFAULT_DATE_SIZE = 24
+        private const val DEFAULT_DAY_SIZE = 16
+        private const val DEFAULT_TEMP_SIZE = 16
+        private const val DEFAULT_SHOW_YEAR = true
+        private const val DEFAULT_SHOW_DOW = true
+        private const val DEFAULT_SHOW_TEMP = false
     }
 }
