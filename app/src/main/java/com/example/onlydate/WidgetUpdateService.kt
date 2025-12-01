@@ -3,6 +3,7 @@ package com.example.onlydate
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.appwidget.AppWidgetManager
 import android.content.BroadcastReceiver
@@ -60,7 +61,33 @@ class WidgetUpdateService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val timestamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(Date())
         Logger.d(TAG, "[$timestamp] onStartCommand called (startId=$startId)")
+        // START_STICKY: サービスが停止されても再起動を試みる
         return START_STICKY
+    }
+    
+    override fun onTaskRemoved(intent: Intent?) {
+        super.onTaskRemoved(intent)
+        val timestamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(Date())
+        Logger.w(TAG, "[$timestamp] ⚠ Task removed - attempting service restart")
+        
+        try {
+            // サービス再起動を試みる
+            val restartIntent = Intent(applicationContext, WidgetUpdateService::class.java)
+            val pendingIntent = PendingIntent.getService(
+                applicationContext,
+                0,
+                restartIntent,
+                PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
+            )
+            
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+            val restartTime = System.currentTimeMillis() + 1000 // 1秒後
+            alarmManager.set(android.app.AlarmManager.RTC_WAKEUP, restartTime, pendingIntent)
+            Logger.d(TAG, "[$timestamp] ✓ Service restart scheduled")
+        } catch (e: Exception) {
+            Logger.e(TAG, "[$timestamp] ✗ Failed to schedule service restart", e)
+            // 再起動失敗してもAlarmManagerとWorkManagerが動く
+        }
     }
 
     override fun onDestroy() {

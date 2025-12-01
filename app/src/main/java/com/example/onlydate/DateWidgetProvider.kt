@@ -109,15 +109,28 @@ class DateWidgetProvider : AppWidgetProvider() {
 
             val triggerTime = System.currentTimeMillis() + 60 * 1000 // 60 seconds
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (alarmManager.canScheduleExactAlarms()) {
-                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    if (alarmManager.canScheduleExactAlarms()) {
+                        // 権限あり: 正確なアラーム
+                        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                        Logger.d(TAG, "✓ Exact alarm scheduled (with permission)")
+                    } else {
+                        // 権限なし: 近似アラーム（それでも動く）
+                        alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                        Logger.w(TAG, "⚠ Inexact alarm scheduled (no SCHEDULE_EXACT_ALARM permission)")
+                    }
                 } else {
-                    Logger.w(TAG, "SCHEDULE_EXACT_ALARM permission not granted. Using inexact alarm.")
-                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                    // Android 11以下: 権限不要
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                    Logger.d(TAG, "✓ Exact alarm scheduled (no permission needed on API ${Build.VERSION.SDK_INT})")
                 }
-            } else {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+            } catch (e: SecurityException) {
+                Logger.e(TAG, "✗ SecurityException scheduling alarm - permission denied", e)
+                // アラーム失敗してもWorkManagerとXMLが動く
+            } catch (e: Exception) {
+                Logger.e(TAG, "✗ Failed to schedule alarm", e)
+                // アラーム失敗してもWorkManagerとXMLが動く
             }
         }
 
@@ -133,16 +146,25 @@ class DateWidgetProvider : AppWidgetProvider() {
         }
 
         private fun scheduleWork(context: Context) {
-            val workRequest = PeriodicWorkRequestBuilder<WidgetUpdateWorker>(
-                15, TimeUnit.MINUTES
-            ).build()
+            try {
+                // 制約なし = より確実に実行される
+                val constraints = androidx.work.Constraints.Builder().build()
+                
+                val workRequest = PeriodicWorkRequestBuilder<WidgetUpdateWorker>(
+                    15, TimeUnit.MINUTES,
+                    5, TimeUnit.MINUTES // flex interval - システムが5分の範囲で最適なタイミングを選択
+                ).setConstraints(constraints).build()
 
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                "WidgetUpdateWork",
-                ExistingPeriodicWorkPolicy.KEEP,
-                workRequest
-            )
-            Logger.d(TAG, "Scheduled WorkManager update (every 15 min)")
+                WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                    "WidgetUpdateWork",
+                    ExistingPeriodicWorkPolicy.KEEP,
+                    workRequest
+                )
+                Logger.d(TAG, "✓ WorkManager scheduled (15min interval, 5min flex)")
+            } catch (e: Exception) {
+                Logger.e(TAG, "✗ Failed to schedule WorkManager", e)
+                // Work失敗してもAlarmManagerとXMLが動く
+            }
         }
 
         private fun cancelWork(context: Context) {
