@@ -12,7 +12,11 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Foreground Service that dynamically registers a BroadcastReceiver for ACTION_USER_PRESENT.
@@ -23,34 +27,54 @@ class WidgetUpdateService : Service() {
 
     private val unlockReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
+            val timestamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(Date())
+            Logger.d(TAG, "[$timestamp] Received broadcast: ${intent.action}")
+            
             if (intent.action == Intent.ACTION_USER_PRESENT) {
-                Logger.d(TAG, "Device unlocked, updating widgets")
+                Logger.d(TAG, "[$timestamp] ✓ Device unlocked, updating widgets")
                 updateAllWidgets(context)
+            } else {
+                Logger.d(TAG, "[$timestamp] Ignoring non-unlock action: ${intent.action}")
             }
         }
     }
 
     override fun onCreate() {
         super.onCreate()
-        Logger.d(TAG, "WidgetUpdateService created")
+        val timestamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(Date())
+        Logger.d(TAG, "[$timestamp] ═══ WidgetUpdateService onCreate ═══")
+        Logger.d(TAG, "[$timestamp] Android API: ${Build.VERSION.SDK_INT}")
+        
+        // Log battery optimization status
+        logBatteryOptimizationStatus()
 
         // Start as foreground service (required for Android 8.0+)
         startForegroundService()
 
         // Register the broadcast receiver dynamically
         registerUnlockReceiver()
+        
+        Logger.d(TAG, "[$timestamp] Service initialization complete")
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val timestamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(Date())
+        Logger.d(TAG, "[$timestamp] onStartCommand called (startId=$startId)")
+        return START_STICKY
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        Logger.d(TAG, "WidgetUpdateService destroyed")
+        val timestamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(Date())
+        Logger.d(TAG, "[$timestamp] ═══ WidgetUpdateService onDestroy ═══")
 
         // Unregister the receiver to prevent memory leaks
         try {
             unregisterReceiver(unlockReceiver)
+            Logger.d(TAG, "[$timestamp] ✓ Receiver unregistered successfully")
         } catch (e: IllegalArgumentException) {
             // Receiver was already unregistered
-            Logger.w(TAG, "Receiver already unregistered", e)
+            Logger.w(TAG, "[$timestamp] ✗ Receiver already unregistered", e)
         }
     }
 
@@ -91,37 +115,61 @@ class WidgetUpdateService : Service() {
         }
 
         // Start foreground
+        val timestamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(Date())
         startForeground(NOTIFICATION_ID, notification)
+        Logger.d(TAG, "[$timestamp] ✓ Started as foreground service")
     }
 
     private fun registerUnlockReceiver() {
+        val timestamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(Date())
         val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
+        Logger.d(TAG, "[$timestamp] Registering receiver for: ${Intent.ACTION_USER_PRESENT}")
 
-        // Android 14+ (API 34) requires RECEIVER_NOT_EXPORTED flag
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(unlockReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-            Logger.d(TAG, "Registered unlock receiver with RECEIVER_NOT_EXPORTED")
-        } else {
-            registerReceiver(unlockReceiver, filter)
-            Logger.d(TAG, "Registered unlock receiver")
+        try {
+            // Android 14+ (API 34) requires RECEIVER_NOT_EXPORTED flag
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(unlockReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                Logger.d(TAG, "[$timestamp] ✓ Registered with RECEIVER_NOT_EXPORTED (API ${Build.VERSION.SDK_INT})")
+            } else {
+                registerReceiver(unlockReceiver, filter)
+                Logger.d(TAG, "[$timestamp] ✓ Registered without flags (API ${Build.VERSION.SDK_INT})")
+            }
+        } catch (e: Exception) {
+            Logger.e(TAG, "[$timestamp] ✗ Failed to register receiver", e)
+        }
+    }
+    
+    private fun logBatteryOptimizationStatus() {
+        val timestamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(Date())
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            val isIgnoringOptimizations = powerManager.isIgnoringBatteryOptimizations(packageName)
+            Logger.d(TAG, "[$timestamp] Battery optimization ignored: $isIgnoringOptimizations")
+            
+            if (!isIgnoringOptimizations) {
+                Logger.w(TAG, "[$timestamp] ⚠ App is subject to battery optimization - may affect background service")
+            }
         }
     }
 
     private fun updateAllWidgets(context: Context) {
+        val timestamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(Date())
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val componentName = ComponentName(context, DateWidgetProvider::class.java)
         val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
 
+        Logger.d(TAG, "[$timestamp] Found ${appWidgetIds.size} widget(s) to update")
+        
         if (appWidgetIds.isNotEmpty()) {
-            Logger.d(TAG, "Updating ${appWidgetIds.size} widget(s)")
             // Trigger update through the provider
             val updateIntent = Intent(context, DateWidgetProvider::class.java).apply {
                 action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
             }
             context.sendBroadcast(updateIntent)
+            Logger.d(TAG, "[$timestamp] ✓ Broadcast sent to update widgets")
         } else {
-            Logger.d(TAG, "No widgets to update")
+            Logger.d(TAG, "[$timestamp] No widgets to update")
         }
     }
 
