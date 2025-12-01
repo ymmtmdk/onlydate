@@ -39,8 +39,6 @@ class WidgetConfigActivity : Activity() {
         setContentView(R.layout.activity_widget_config)
         setResult(RESULT_CANCELED)
 
-        Log.d("OnlyDate", "App icon tapped / Activity started")
-
         textColorInput = findViewById(R.id.text_color_input)
         backgroundColorInput = findViewById(R.id.background_color_input)
         opacitySeekBar = findViewById(R.id.opacity_seekbar)
@@ -69,6 +67,11 @@ class WidgetConfigActivity : Activity() {
 
         // Setup listeners for instant updates
         setupListeners()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d("OnlyDate", "App icon tapped / Activity started")
     }
 
     private fun setupListeners() {
