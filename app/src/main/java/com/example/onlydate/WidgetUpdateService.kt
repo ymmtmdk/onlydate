@@ -24,7 +24,7 @@ class WidgetUpdateService : Service() {
     private val unlockReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == Intent.ACTION_USER_PRESENT) {
-                Log.d(TAG, "Device unlocked, updating widgets")
+                Logger.d(TAG, "Device unlocked, updating widgets")
                 updateAllWidgets(context)
             }
         }
@@ -32,7 +32,7 @@ class WidgetUpdateService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "WidgetUpdateService created")
+        Logger.d(TAG, "WidgetUpdateService created")
 
         // Start as foreground service (required for Android 8.0+)
         startForegroundService()
@@ -43,14 +43,14 @@ class WidgetUpdateService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.d(TAG, "WidgetUpdateService destroyed")
+        Logger.d(TAG, "WidgetUpdateService destroyed")
 
         // Unregister the receiver to prevent memory leaks
         try {
             unregisterReceiver(unlockReceiver)
         } catch (e: IllegalArgumentException) {
             // Receiver was already unregistered
-            Log.w(TAG, "Receiver already unregistered", e)
+            Logger.w(TAG, "Receiver already unregistered", e)
         }
     }
 
@@ -100,10 +100,10 @@ class WidgetUpdateService : Service() {
         // Android 14+ (API 34) requires RECEIVER_NOT_EXPORTED flag
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(unlockReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-            Log.d(TAG, "Registered unlock receiver with RECEIVER_NOT_EXPORTED")
+            Logger.d(TAG, "Registered unlock receiver with RECEIVER_NOT_EXPORTED")
         } else {
             registerReceiver(unlockReceiver, filter)
-            Log.d(TAG, "Registered unlock receiver")
+            Logger.d(TAG, "Registered unlock receiver")
         }
     }
 
@@ -113,7 +113,7 @@ class WidgetUpdateService : Service() {
         val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
 
         if (appWidgetIds.isNotEmpty()) {
-            Log.d(TAG, "Updating ${appWidgetIds.size} widget(s)")
+            Logger.d(TAG, "Updating ${appWidgetIds.size} widget(s)")
             // Trigger update through the provider
             val updateIntent = Intent(context, DateWidgetProvider::class.java).apply {
                 action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
@@ -121,7 +121,7 @@ class WidgetUpdateService : Service() {
             }
             context.sendBroadcast(updateIntent)
         } else {
-            Log.d(TAG, "No widgets to update")
+            Logger.d(TAG, "No widgets to update")
         }
     }
 

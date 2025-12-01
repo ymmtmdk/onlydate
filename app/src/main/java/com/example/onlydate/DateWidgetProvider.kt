@@ -44,7 +44,7 @@ class DateWidgetProvider : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        Log.d(TAG, "Widget onReceive: ${intent.action}")
+        Logger.d(TAG, "Widget onReceive: ${intent.action}")
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
@@ -55,7 +55,7 @@ class DateWidgetProvider : AppWidgetProvider() {
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
         // Start the foreground service to listen for device unlock
-        Log.d(TAG, "First widget added, starting WidgetUpdateService")
+        Logger.d(TAG, "First widget added, starting WidgetUpdateService")
         val serviceIntent = Intent(context, WidgetUpdateService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(serviceIntent)
@@ -67,7 +67,7 @@ class DateWidgetProvider : AppWidgetProvider() {
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
         // Stop the foreground service when last widget is removed
-        Log.d(TAG, "Last widget removed, stopping WidgetUpdateService")
+        Logger.d(TAG, "Last widget removed, stopping WidgetUpdateService")
         val serviceIntent = Intent(context, WidgetUpdateService::class.java)
         context.stopService(serviceIntent)
     }
@@ -178,7 +178,7 @@ class DateWidgetProvider : AppWidgetProvider() {
         }
 
         private fun fetchTemperature(context: Context): Double? {
-            Log.d(TAG, "Fetching temperature...")
+            Logger.d(TAG, "Fetching temperature...")
             return try {
                 val url = URL("https://my-worker-dev.tmtfctry.workers.dev/46106/temp")
                 val connection = url.openConnection()
@@ -190,11 +190,11 @@ class DateWidgetProvider : AppWidgetProvider() {
                 reader.close()
 
                 val temp = JSONArray(response).getDouble(0)
-                Log.d(TAG, "Fetched temperature: $temp")
+                Logger.d(TAG, "Fetched temperature: $temp")
                 WidgetSettings.saveLastTemp(context, temp)
                 temp
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to fetch temperature", e)
+                Logger.e(TAG, "Failed to fetch temperature", e)
                 e.printStackTrace()
                 null
             }

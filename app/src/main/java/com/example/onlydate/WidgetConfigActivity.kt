@@ -33,6 +33,7 @@ class WidgetConfigActivity : Activity() {
     private lateinit var showTemperatureSwitch: SwitchCompat
     private lateinit var languageRadioGroup: RadioGroup
     private lateinit var layoutRadioGroup: RadioGroup
+    private lateinit var logView: TextView
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,6 +54,13 @@ class WidgetConfigActivity : Activity() {
         showTemperatureSwitch = findViewById(R.id.show_temperature_switch)
         languageRadioGroup = findViewById(R.id.language_radio_group)
         layoutRadioGroup = findViewById(R.id.layout_radio_group)
+        logView = findViewById(R.id.log_view)
+
+        Logger.setListener { logs ->
+            runOnUiThread {
+                logView.text = logs
+            }
+        }
 
         val intent = intent
         val extras = intent.extras
@@ -69,9 +77,14 @@ class WidgetConfigActivity : Activity() {
         setupListeners()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        Logger.removeListener()
+    }
+
     override fun onResume() {
         super.onResume()
-        Log.d(TAG, "App icon tapped / Activity started")
+        Logger.d(TAG, "App icon tapped / Activity started")
         updateWidgets()
     }
 
@@ -123,7 +136,7 @@ class WidgetConfigActivity : Activity() {
     }
 
     private fun updateWidgets() {
-        Log.d(TAG, "updateWidgets")
+        Logger.d(TAG, "updateWidgets")
         val context: Context = this@WidgetConfigActivity
         saveSettings(context)
 
@@ -150,7 +163,7 @@ class WidgetConfigActivity : Activity() {
     }
 
     private fun loadSettings() {
-        Log.d(TAG, "Loading settings")
+        Logger.d(TAG, "Loading settings")
         val prefs = getSharedPreferences(WidgetSettings.PREFS_NAME, Context.MODE_PRIVATE)
         textColorInput.setText(prefs.getString(WidgetSettings.PREF_TEXT_COLOR_KEY, WidgetSettings.DEFAULT_TEXT_COLOR) ?: WidgetSettings.DEFAULT_TEXT_COLOR)
         backgroundColorInput.setText(prefs.getString(WidgetSettings.PREF_BG_COLOR_KEY, WidgetSettings.DEFAULT_BG_COLOR) ?: WidgetSettings.DEFAULT_BG_COLOR)
@@ -187,11 +200,11 @@ class WidgetConfigActivity : Activity() {
             WidgetSettings.LAYOUT_THREE_ROWS -> layoutRadioGroup.check(R.id.layout_three_rows)
             else -> layoutRadioGroup.check(R.id.layout_horizontal)
         }
-        Log.d(TAG, "Settings loaded")
+        Logger.d(TAG, "Settings loaded")
     }
 
     private fun saveSettings(context: Context) {
-        Log.d(TAG, "Saving settings")
+        Logger.d(TAG, "Saving settings")
         val prefs = context.getSharedPreferences(WidgetSettings.PREFS_NAME, Context.MODE_PRIVATE).edit()
         prefs.putString(WidgetSettings.PREF_TEXT_COLOR_KEY, textColorInput.text.toString())
         prefs.putString(WidgetSettings.PREF_BG_COLOR_KEY, backgroundColorInput.text.toString())
@@ -220,7 +233,7 @@ class WidgetConfigActivity : Activity() {
         prefs.putInt(WidgetSettings.PREF_LAYOUT_TYPE_KEY, layoutType)
 
         prefs.apply()
-        Log.d(TAG, "Settings saved")
+        Logger.d(TAG, "Settings saved")
     }
 
     companion object {
