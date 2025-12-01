@@ -241,7 +241,6 @@ class WidgetConfigActivity : Activity() {
 
         prefs.apply()
         Logger.d(TAG, "Settings saved")
-        Logger.d(TAG, "Settings saved")
     }
 
     private fun checkExactAlarmPermission() {
