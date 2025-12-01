@@ -45,15 +45,6 @@ class DateWidgetProvider : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         Log.d(TAG, "Widget onReceive: ${intent.action}")
-        
-        // Handle ACTION_USER_PRESENT to update widget on device unlock
-        if (intent.action == Intent.ACTION_USER_PRESENT) {
-            Log.d(TAG, "Device unlocked, updating widgets")
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val componentName = ComponentName(context, DateWidgetProvider::class.java)
-            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
-            doUpdate(context, appWidgetManager, appWidgetIds)
-        }
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
@@ -63,12 +54,22 @@ class DateWidgetProvider : AppWidgetProvider() {
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        // Widget enabled - no service needed, using ACTION_USER_PRESENT broadcast
+        // Start the foreground service to listen for device unlock
+        Log.d(TAG, "First widget added, starting WidgetUpdateService")
+        val serviceIntent = Intent(context, WidgetUpdateService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent)
+        } else {
+            context.startService(serviceIntent)
+        }
     }
 
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        // Widget disabled - no service to stop
+        // Stop the foreground service when last widget is removed
+        Log.d(TAG, "Last widget removed, stopping WidgetUpdateService")
+        val serviceIntent = Intent(context, WidgetUpdateService::class.java)
+        context.stopService(serviceIntent)
     }
 
     companion object {
