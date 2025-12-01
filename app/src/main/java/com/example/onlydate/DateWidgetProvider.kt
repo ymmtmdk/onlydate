@@ -18,6 +18,10 @@ import java.io.InputStreamReader
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
 import org.json.JSONArray
 
 class DateWidgetProvider : AppWidgetProvider() {
@@ -40,6 +44,7 @@ class DateWidgetProvider : AppWidgetProvider() {
     }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        Logger.d(TAG, "Update from AppWidgetProvider (XML/Broadcast)")
         doUpdate(context, appWidgetManager, appWidgetIds)
         scheduleNextUpdate(context)
     }
@@ -48,10 +53,12 @@ class DateWidgetProvider : AppWidgetProvider() {
         super.onReceive(context, intent)
         Logger.d(TAG, "Widget onReceive: ${intent.action}")
         if (intent.action == ACTION_AUTO_UPDATE) {
+            Logger.d(TAG, "Update from AlarmManager")
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val thisAppWidget = ComponentName(context.packageName, DateWidgetProvider::class.java.name)
             val appWidgetIds = appWidgetManager.getAppWidgetIds(thisAppWidget)
-            onUpdate(context, appWidgetManager, appWidgetIds)
+            doUpdate(context, appWidgetManager, appWidgetIds)
+            scheduleNextUpdate(context)
         }
     }
 
@@ -71,6 +78,7 @@ class DateWidgetProvider : AppWidgetProvider() {
             context.startService(serviceIntent)
         }
         scheduleNextUpdate(context)
+        scheduleWork(context)
     }
 
     override fun onDisabled(context: Context) {
@@ -80,6 +88,7 @@ class DateWidgetProvider : AppWidgetProvider() {
         val serviceIntent = Intent(context, WidgetUpdateService::class.java)
         context.stopService(serviceIntent)
         cancelUpdate(context)
+        cancelWork(context)
     }
 
     companion object {
@@ -117,6 +126,24 @@ class DateWidgetProvider : AppWidgetProvider() {
                 context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             alarmManager.cancel(pendingIntent)
+        }
+
+        private fun scheduleWork(context: Context) {
+            val workRequest = PeriodicWorkRequestBuilder<WidgetUpdateWorker>(
+                15, TimeUnit.MINUTES
+            ).build()
+
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                "WidgetUpdateWork",
+                ExistingPeriodicWorkPolicy.KEEP,
+                workRequest
+            )
+            Logger.d(TAG, "Scheduled WorkManager update (every 15 min)")
+        }
+
+        private fun cancelWork(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork("WidgetUpdateWork")
+            Logger.d(TAG, "Cancelled WorkManager update")
         }
 
         internal fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray, temp: Double? = null) {
