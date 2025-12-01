@@ -3,10 +3,10 @@ package com.example.onlydate
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
@@ -21,14 +21,15 @@ class DateWidgetProvider : AppWidgetProvider() {
 
     private fun doUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         val pendingResult = goAsync()
+        val appContext = context.applicationContext
         Thread {
             try {
-                val showTemp = WidgetConfigActivity.loadShowTemp(context)
-                val temp = if (showTemp) fetchTemperature(context) else null
-                updateAppWidget(context, appWidgetManager, appWidgetIds, temp)
+                val showTemp = WidgetConfigActivity.loadShowTemp(appContext)
+                val temp = if (showTemp) fetchTemperature(appContext) else null
+                updateAppWidget(appContext, appWidgetManager, appWidgetIds, temp)
             } catch (e: Exception) {
                 e.printStackTrace()
-                updateAppWidget(context, appWidgetManager, appWidgetIds)
+                updateAppWidget(appContext, appWidgetManager, appWidgetIds)
             } finally {
                 pendingResult.finish()
             }
@@ -41,12 +42,7 @@ class DateWidgetProvider : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        if (intent.action == Intent.ACTION_SCREEN_ON) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val thisAppWidget = ComponentName(context.packageName, javaClass.name)
-            val appWidgetIds = appWidgetManager.getAppWidgetIds(thisAppWidget)
-            doUpdate(context, appWidgetManager, appWidgetIds)
-        }
+        Log.d("OnlyDate", "Widget tapped / onReceive: ${intent.action}")
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
@@ -161,6 +157,7 @@ class DateWidgetProvider : AppWidgetProvider() {
         }
 
         private const val PREF_LAST_TEMP_KEY = "last_temp"
+        private const val TAG = "DateWidgetProvider"
 
         // Public wrapper for fetching temperature from WidgetConfigActivity
         internal fun fetchTemperaturePublic(context: Context): Double? {
@@ -168,6 +165,7 @@ class DateWidgetProvider : AppWidgetProvider() {
         }
 
         private fun fetchTemperature(context: Context): Double? {
+            Log.d(TAG, "Fetching temperature...")
             return try {
                 val url = URL("https://my-worker-dev.tmtfctry.workers.dev/46106/temp")
                 val connection = url.openConnection()
@@ -179,9 +177,11 @@ class DateWidgetProvider : AppWidgetProvider() {
                 reader.close()
 
                 val temp = JSONArray(response).getDouble(0)
+                Log.d(TAG, "Fetched temperature: $temp")
                 saveLastTemp(context, temp)
                 temp
             } catch (e: Exception) {
+                Log.e(TAG, "Failed to fetch temperature", e)
                 e.printStackTrace()
                 null
             }

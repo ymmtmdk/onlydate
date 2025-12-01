@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.widget.EditText
 import android.widget.RadioGroup
 import android.widget.SeekBar
@@ -37,6 +38,8 @@ class WidgetConfigActivity : Activity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_widget_config)
         setResult(RESULT_CANCELED)
+
+        Log.d("OnlyDate", "App icon tapped / Activity started")
 
         textColorInput = findViewById(R.id.text_color_input)
         backgroundColorInput = findViewById(R.id.background_color_input)
@@ -134,6 +137,7 @@ class WidgetConfigActivity : Activity() {
     }
 
     private fun updateWidgets() {
+        Log.d(TAG, "updateWidgets")
         val context: Context = this@WidgetConfigActivity
         saveSettings(context)
 
@@ -141,9 +145,9 @@ class WidgetConfigActivity : Activity() {
         val appWidgetManager = AppWidgetManager.getInstance(context)
         val componentName = ComponentName(context, DateWidgetProvider::class.java)
         val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
-        
+
         // Fetch temperature in background if enabled
-        val showTemp = WidgetConfigActivity.loadShowTemp(context)
+        val showTemp = loadShowTemp(context)
         if (showTemp) {
             Thread {
                 try {
@@ -169,23 +173,24 @@ class WidgetConfigActivity : Activity() {
     }
 
     private fun loadSettings() {
+        Log.d(TAG, "Loading settings")
         val prefs = getSharedPreferences(PREFS_NAME, 0)
         textColorInput.setText(prefs.getString(PREF_TEXT_COLOR_KEY, "#FFFFFF") ?: "#FFFFFF")
         backgroundColorInput.setText(prefs.getString(PREF_BG_COLOR_KEY, "#000000") ?: "#000000")
         opacitySeekBar.progress = prefs.getInt(PREF_BG_OPACITY_KEY, 128)
-        
+
         val dateSize = prefs.getInt(PREF_DATE_SIZE_KEY, 24)
         val daySize = prefs.getInt(PREF_DAY_SIZE_KEY, 16)
         val tempSize = prefs.getInt(PREF_TEMP_SIZE_KEY, 16)
-        
+
         dateSizeSeekBar.progress = dateSize - 8
         daySizeSeekBar.progress = daySize - 8
         tempSizeSeekBar.progress = tempSize - 8
-        
+
         dateSizeLabel.text = "$dateSize sp"
         daySizeLabel.text = "$daySize sp"
         tempSizeLabel.text = "$tempSize sp"
-        
+
         showYearSwitch.isChecked = prefs.getBoolean(PREF_SHOW_YEAR_KEY, true)
         showDayOfWeekSwitch.isChecked = prefs.getBoolean(PREF_SHOW_DOW_KEY, true)
         showTemperatureSwitch.isChecked = prefs.getBoolean(PREF_SHOW_TEMP_KEY, false)
@@ -205,9 +210,11 @@ class WidgetConfigActivity : Activity() {
             LAYOUT_THREE_ROWS -> layoutRadioGroup.check(R.id.layout_three_rows)
             else -> layoutRadioGroup.check(R.id.layout_horizontal)
         }
+        Log.d(TAG, "Settings loaded")
     }
 
     private fun saveSettings(context: Context) {
+        Log.d(TAG, "Saving settings")
         val prefs = context.getSharedPreferences(PREFS_NAME, 0).edit()
         prefs.putString(PREF_TEXT_COLOR_KEY, textColorInput.text.toString())
         prefs.putString(PREF_BG_COLOR_KEY, backgroundColorInput.text.toString())
@@ -236,9 +243,11 @@ class WidgetConfigActivity : Activity() {
         prefs.putInt(PREF_LAYOUT_TYPE_KEY, layoutType)
 
         prefs.apply()
+        Log.d(TAG, "Settings saved")
     }
 
     companion object {
+        private const val TAG = "WidgetConfigActivity"
         internal const val PREFS_NAME = "com.example.onlydate.DateWidgetProvider"
         internal const val PREF_TEXT_COLOR_KEY = "text_color"
         internal const val PREF_BG_COLOR_KEY = "bg_color"
