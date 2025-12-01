@@ -24,7 +24,7 @@ class DateWidgetProvider : AppWidgetProvider() {
         val appContext = context.applicationContext
         Thread {
             try {
-                val showTemp = WidgetConfigActivity.loadShowTemp(appContext)
+                val showTemp = WidgetSettings.loadShowTemp(appContext)
                 val temp = if (showTemp) fetchTemperature(appContext) else null
                 updateAppWidget(appContext, appWidgetManager, appWidgetIds, temp)
             } catch (e: Exception) {
@@ -67,16 +67,16 @@ class DateWidgetProvider : AppWidgetProvider() {
 
         internal fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int, temp: Double? = null) {
             // Load global settings
-            val textColor = WidgetConfigActivity.loadTextColor(context)
-            val bgColor = WidgetConfigActivity.loadBgColor(context)
-            val bgOpacity = WidgetConfigActivity.loadBgOpacity(context)
-            val showYear = WidgetConfigActivity.loadShowYear(context)
-            val showDayOfWeek = WidgetConfigActivity.loadShowDayOfWeek(context)
-            val showTemp = WidgetConfigActivity.loadShowTemp(context)
-            val language = WidgetConfigActivity.loadLanguage(context)
-            val dateSizeSp = WidgetConfigActivity.loadDateSize(context).toFloat()
-            val daySizeSp = WidgetConfigActivity.loadDaySize(context).toFloat()
-            val tempSizeSp = WidgetConfigActivity.loadTempSize(context).toFloat()
+            val textColor = WidgetSettings.loadTextColor(context)
+            val bgColor = WidgetSettings.loadBgColor(context)
+            val bgOpacity = WidgetSettings.loadBgOpacity(context)
+            val showYear = WidgetSettings.loadShowYear(context)
+            val showDayOfWeek = WidgetSettings.loadShowDayOfWeek(context)
+            val showTemp = WidgetSettings.loadShowTemp(context)
+            val language = WidgetSettings.loadLanguage(context)
+            val dateSizeSp = WidgetSettings.loadDateSize(context).toFloat()
+            val daySizeSp = WidgetSettings.loadDaySize(context).toFloat()
+            val tempSizeSp = WidgetSettings.loadTempSize(context).toFloat()
 
             // Prepare strings
             val date = Date()
@@ -86,8 +86,8 @@ class DateWidgetProvider : AppWidgetProvider() {
 
             val dayString = if (showDayOfWeek) {
                 val locale = when (language) {
-                    WidgetConfigActivity.LANG_ENGLISH -> Locale.ENGLISH
-                    WidgetConfigActivity.LANG_JAPANESE -> Locale.JAPAN
+                    WidgetSettings.LANG_ENGLISH -> Locale.ENGLISH
+                    WidgetSettings.LANG_JAPANESE -> Locale.JAPAN
                     else -> Locale.getDefault()
                 }
                 val sdfDay = SimpleDateFormat("EEE", locale)
@@ -97,7 +97,7 @@ class DateWidgetProvider : AppWidgetProvider() {
             }
 
             val displayTemp = if (showTemp) {
-                temp ?: loadLastTemp(context)
+                temp ?: WidgetSettings.loadLastTemp(context)
             } else {
                 null
             }
@@ -107,12 +107,12 @@ class DateWidgetProvider : AppWidgetProvider() {
                 ""
             }
 
-            val layoutType = WidgetConfigActivity.loadLayoutType(context)
+            val layoutType = WidgetSettings.loadLayoutType(context)
             val layoutId = when (layoutType) {
-                WidgetConfigActivity.LAYOUT_HORIZONTAL -> R.layout.widget_horizontal
-                WidgetConfigActivity.LAYOUT_TWO_ROWS_TEMP -> R.layout.widget_two_rows_temp
-                WidgetConfigActivity.LAYOUT_TWO_ROWS_WEEKDAY_TEMP -> R.layout.widget_two_rows_weekday_temp
-                WidgetConfigActivity.LAYOUT_THREE_ROWS -> R.layout.widget_three_rows
+                WidgetSettings.LAYOUT_HORIZONTAL -> R.layout.widget_horizontal
+                WidgetSettings.LAYOUT_TWO_ROWS_TEMP -> R.layout.widget_two_rows_temp
+                WidgetSettings.LAYOUT_TWO_ROWS_WEEKDAY_TEMP -> R.layout.widget_two_rows_weekday_temp
+                WidgetSettings.LAYOUT_THREE_ROWS -> R.layout.widget_three_rows
                 else -> R.layout.widget_horizontal
             }
             val views = RemoteViews(context.packageName, layoutId)
@@ -156,7 +156,6 @@ class DateWidgetProvider : AppWidgetProvider() {
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
-        private const val PREF_LAST_TEMP_KEY = "last_temp"
         private const val TAG = "DateWidgetProvider"
 
         // Public wrapper for fetching temperature from WidgetConfigActivity
@@ -178,25 +177,13 @@ class DateWidgetProvider : AppWidgetProvider() {
 
                 val temp = JSONArray(response).getDouble(0)
                 Log.d(TAG, "Fetched temperature: $temp")
-                saveLastTemp(context, temp)
+                WidgetSettings.saveLastTemp(context, temp)
                 temp
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to fetch temperature", e)
                 e.printStackTrace()
                 null
             }
-        }
-
-        private fun saveLastTemp(context: Context, temp: Double) {
-            val prefs = context.getSharedPreferences(WidgetConfigActivity.PREFS_NAME, 0).edit()
-            prefs.putFloat(PREF_LAST_TEMP_KEY, temp.toFloat())
-            prefs.apply()
-        }
-
-        private fun loadLastTemp(context: Context): Double? {
-            val prefs = context.getSharedPreferences(WidgetConfigActivity.PREFS_NAME, 0)
-            if (!prefs.contains(PREF_LAST_TEMP_KEY)) return null
-            return prefs.getFloat(PREF_LAST_TEMP_KEY, 0f).toDouble()
         }
     }
 }
