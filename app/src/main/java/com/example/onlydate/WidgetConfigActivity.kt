@@ -72,6 +72,7 @@ class WidgetConfigActivity : Activity() {
     override fun onResume() {
         super.onResume()
         Log.d("OnlyDate", "App icon tapped / Activity started")
+        updateWidgets()
     }
 
     private fun setupListeners() {
