@@ -97,47 +97,29 @@ class WidgetConfigActivity : Activity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        dateSizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val size = progress + 8
-                dateSizeLabel.text = "$size sp"
-                if (fromUser) {
-                    updateWidgets()
-                }
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-
-        daySizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val size = progress + 8
-                daySizeLabel.text = "$size sp"
-                if (fromUser) {
-                    updateWidgets()
-                }
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-
-        tempSizeSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val size = progress + 8
-                tempSizeLabel.text = "$size sp"
-                if (fromUser) {
-                    updateWidgets()
-                }
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
+        setupSeekBarListener(dateSizeSeekBar, dateSizeLabel)
+        setupSeekBarListener(daySizeSeekBar, daySizeLabel)
+        setupSeekBarListener(tempSizeSeekBar, tempSizeLabel)
 
         showYearSwitch.setOnCheckedChangeListener { _, _ -> updateWidgets() }
         showDayOfWeekSwitch.setOnCheckedChangeListener { _, _ -> updateWidgets() }
         showTemperatureSwitch.setOnCheckedChangeListener { _, _ -> updateWidgets() }
         languageRadioGroup.setOnCheckedChangeListener { _, _ -> updateWidgets() }
         layoutRadioGroup.setOnCheckedChangeListener { _, _ -> updateWidgets() }
+    }
+
+    private fun setupSeekBarListener(seekBar: SeekBar, label: TextView) {
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val size = progress + 8
+                label.text = "$size sp"
+                if (fromUser) {
+                    updateWidgets()
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
     }
 
     private fun updateWidgets() {
@@ -157,22 +139,13 @@ class WidgetConfigActivity : Activity() {
                 try {
                     val temp = DateWidgetProvider.fetchTemperaturePublic(context)
                     DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds, temp)
-                    if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                        DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId, temp)
-                    }
                 } catch (e: Exception) {
                     e.printStackTrace()
                     DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds)
-                    if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                        DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId)
-                    }
                 }
             }.start()
         } else {
             DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetIds)
-            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                DateWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId)
-            }
         }
     }
 
