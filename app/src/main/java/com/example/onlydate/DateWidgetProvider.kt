@@ -44,11 +44,11 @@ class DateWidgetProvider : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        Log.d("OnlyDate", "Widget onReceive: ${intent.action}")
+        Log.d(TAG, "Widget onReceive: ${intent.action}")
         
         // Handle ACTION_USER_PRESENT to update widget on device unlock
         if (intent.action == Intent.ACTION_USER_PRESENT) {
-            Log.d("OnlyDate", "Device unlocked, updating widgets")
+            Log.d(TAG, "Device unlocked, updating widgets")
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val componentName = ComponentName(context, DateWidgetProvider::class.java)
             val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
@@ -169,7 +169,7 @@ class DateWidgetProvider : AppWidgetProvider() {
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
-        private const val TAG = "DateWidgetProvider"
+        private const val TAG = "OnlyDate"
 
         // Public wrapper for fetching temperature from WidgetConfigActivity
         internal fun fetchTemperaturePublic(context: Context): Double? {

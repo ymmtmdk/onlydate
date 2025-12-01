@@ -71,7 +71,7 @@ class WidgetConfigActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        Log.d("OnlyDate", "App icon tapped / Activity started")
+        Log.d(TAG, "App icon tapped / Activity started")
         updateWidgets()
     }
 
@@ -224,6 +224,6 @@ class WidgetConfigActivity : Activity() {
     }
 
     companion object {
-        private const val TAG = "WidgetConfigActivity"
+        private const val TAG = "OnlyDate"
     }
 }
