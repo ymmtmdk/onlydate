@@ -18,6 +18,7 @@ import android.widget.RadioGroup
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.widget.SwitchCompat
+import android.net.Uri
 
 class WidgetConfigActivity : Activity() {
 
@@ -315,7 +316,9 @@ class WidgetConfigActivity : Activity() {
                     .setTitle("Permission Required")
                     .setMessage("To update the widget precisely every minute, please grant the 'Alarms & reminders' permission.")
                     .setPositiveButton("Grant") { _, _ ->
-                        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                            data = Uri.parse("package:${packageName}")
+                        }
                         startActivity(intent)
                     }
                     .setNegativeButton("Cancel", null)
