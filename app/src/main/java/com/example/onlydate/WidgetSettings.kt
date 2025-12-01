@@ -38,12 +38,22 @@ object WidgetSettings {
     internal const val DEFAULT_SHOW_DOW = true
     internal const val DEFAULT_SHOW_TEMP = false
 
+    internal fun isValidColor(colorString: String): Boolean {
+        return try {
+            Color.parseColor(colorString)
+            true
+        } catch (e: IllegalArgumentException) {
+            false
+        }
+    }
+
     internal fun loadTextColor(context: Context): Int {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val colorString = prefs.getString(PREF_TEXT_COLOR_KEY, DEFAULT_TEXT_COLOR) ?: DEFAULT_TEXT_COLOR
         return try {
             Color.parseColor(colorString)
         } catch (e: IllegalArgumentException) {
+            Logger.w("WidgetSettings", "Invalid text color: $colorString, using default")
             Color.WHITE
         }
     }
@@ -54,6 +64,7 @@ object WidgetSettings {
         return try {
             Color.parseColor(colorString)
         } catch (e: IllegalArgumentException) {
+            Logger.w("WidgetSettings", "Invalid background color: $colorString, using default")
             Color.BLACK
         }
     }

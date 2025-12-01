@@ -106,6 +106,19 @@ class WidgetConfigActivity : Activity() {
 
         textColorInput.addTextChangedListener(textWatcher)
         backgroundColorInput.addTextChangedListener(textWatcher)
+        
+        // Add focus change listeners for validation
+        textColorInput.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                validateAndCorrectColorInput(textColorInput, WidgetSettings.DEFAULT_TEXT_COLOR, "text color")
+            }
+        }
+        
+        backgroundColorInput.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                validateAndCorrectColorInput(backgroundColorInput, WidgetSettings.DEFAULT_BG_COLOR, "background color")
+            }
+        }
 
         opacitySeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -126,6 +139,19 @@ class WidgetConfigActivity : Activity() {
         showTemperatureSwitch.setOnCheckedChangeListener { _, _ -> updateWidgets() }
         languageRadioGroup.setOnCheckedChangeListener { _, _ -> updateWidgets() }
         layoutRadioGroup.setOnCheckedChangeListener { _, _ -> updateWidgets() }
+    }
+    
+    private fun validateAndCorrectColorInput(input: EditText, defaultValue: String, fieldName: String) {
+        val colorStr = input.text.toString()
+        if (!WidgetSettings.isValidColor(colorStr)) {
+            Logger.w(TAG, "Invalid $fieldName: $colorStr, correcting to default")
+            input.setText(defaultValue)
+            android.widget.Toast.makeText(
+                this,
+                "Invalid $fieldName. Reset to default.",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun setupSeekBarListener(seekBar: SeekBar, label: TextView) {
@@ -172,8 +198,29 @@ class WidgetConfigActivity : Activity() {
     private fun loadSettings() {
         Logger.d(TAG, "Loading settings")
         val prefs = getSharedPreferences(WidgetSettings.PREFS_NAME, Context.MODE_PRIVATE)
-        textColorInput.setText(prefs.getString(WidgetSettings.PREF_TEXT_COLOR_KEY, WidgetSettings.DEFAULT_TEXT_COLOR) ?: WidgetSettings.DEFAULT_TEXT_COLOR)
-        backgroundColorInput.setText(prefs.getString(WidgetSettings.PREF_BG_COLOR_KEY, WidgetSettings.DEFAULT_BG_COLOR) ?: WidgetSettings.DEFAULT_BG_COLOR)
+        
+        // Load and validate text color
+        val textColorStr = prefs.getString(WidgetSettings.PREF_TEXT_COLOR_KEY, WidgetSettings.DEFAULT_TEXT_COLOR) ?: WidgetSettings.DEFAULT_TEXT_COLOR
+        if (WidgetSettings.isValidColor(textColorStr)) {
+            textColorInput.setText(textColorStr)
+        } else {
+            Logger.w(TAG, "Invalid saved text color: $textColorStr, using default")
+            textColorInput.setText(WidgetSettings.DEFAULT_TEXT_COLOR)
+            // Fix the saved preference
+            prefs.edit().putString(WidgetSettings.PREF_TEXT_COLOR_KEY, WidgetSettings.DEFAULT_TEXT_COLOR).apply()
+        }
+        
+        // Load and validate background color
+        val bgColorStr = prefs.getString(WidgetSettings.PREF_BG_COLOR_KEY, WidgetSettings.DEFAULT_BG_COLOR) ?: WidgetSettings.DEFAULT_BG_COLOR
+        if (WidgetSettings.isValidColor(bgColorStr)) {
+            backgroundColorInput.setText(bgColorStr)
+        } else {
+            Logger.w(TAG, "Invalid saved background color: $bgColorStr, using default")
+            backgroundColorInput.setText(WidgetSettings.DEFAULT_BG_COLOR)
+            // Fix the saved preference
+            prefs.edit().putString(WidgetSettings.PREF_BG_COLOR_KEY, WidgetSettings.DEFAULT_BG_COLOR).apply()
+        }
+        
         opacitySeekBar.progress = prefs.getInt(WidgetSettings.PREF_BG_OPACITY_KEY, WidgetSettings.DEFAULT_BG_OPACITY)
 
         val dateSize = prefs.getInt(WidgetSettings.PREF_DATE_SIZE_KEY, WidgetSettings.DEFAULT_DATE_SIZE)
@@ -213,8 +260,25 @@ class WidgetConfigActivity : Activity() {
     private fun saveSettings(context: Context) {
         Logger.d(TAG, "Saving settings")
         val prefs = context.getSharedPreferences(WidgetSettings.PREFS_NAME, Context.MODE_PRIVATE).edit()
-        prefs.putString(WidgetSettings.PREF_TEXT_COLOR_KEY, textColorInput.text.toString())
-        prefs.putString(WidgetSettings.PREF_BG_COLOR_KEY, backgroundColorInput.text.toString())
+        
+        // Validate and save text color
+        val textColorStr = textColorInput.text.toString()
+        if (WidgetSettings.isValidColor(textColorStr)) {
+            prefs.putString(WidgetSettings.PREF_TEXT_COLOR_KEY, textColorStr)
+        } else {
+            Logger.w(TAG, "Invalid text color input: $textColorStr, using default")
+            prefs.putString(WidgetSettings.PREF_TEXT_COLOR_KEY, WidgetSettings.DEFAULT_TEXT_COLOR)
+        }
+        
+        // Validate and save background color
+        val bgColorStr = backgroundColorInput.text.toString()
+        if (WidgetSettings.isValidColor(bgColorStr)) {
+            prefs.putString(WidgetSettings.PREF_BG_COLOR_KEY, bgColorStr)
+        } else {
+            Logger.w(TAG, "Invalid background color input: $bgColorStr, using default")
+            prefs.putString(WidgetSettings.PREF_BG_COLOR_KEY, WidgetSettings.DEFAULT_BG_COLOR)
+        }
+        
         prefs.putInt(WidgetSettings.PREF_BG_OPACITY_KEY, opacitySeekBar.progress)
         prefs.putInt(WidgetSettings.PREF_DATE_SIZE_KEY, dateSizeSeekBar.progress + WidgetSettings.MIN_TEXT_SIZE)
         prefs.putInt(WidgetSettings.PREF_DAY_SIZE_KEY, daySizeSeekBar.progress + WidgetSettings.MIN_TEXT_SIZE)
