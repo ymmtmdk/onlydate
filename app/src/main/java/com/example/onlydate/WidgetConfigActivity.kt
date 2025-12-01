@@ -3,11 +3,15 @@ package com.example.onlydate
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 
+import android.app.AlarmManager
+import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.widget.EditText
 import android.widget.RadioGroup
@@ -75,6 +79,9 @@ class WidgetConfigActivity : Activity() {
 
         // Setup listeners for instant updates
         setupListeners()
+
+        // Check for exact alarm permission on Android 12+
+        checkExactAlarmPermission()
     }
 
     override fun onDestroy() {
@@ -234,6 +241,24 @@ class WidgetConfigActivity : Activity() {
 
         prefs.apply()
         Logger.d(TAG, "Settings saved")
+        Logger.d(TAG, "Settings saved")
+    }
+
+    private fun checkExactAlarmPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            if (!alarmManager.canScheduleExactAlarms()) {
+                AlertDialog.Builder(this)
+                    .setTitle("Permission Required")
+                    .setMessage("To update the widget precisely every minute, please grant the 'Alarms & reminders' permission.")
+                    .setPositiveButton("Grant") { _, _ ->
+                        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                        startActivity(intent)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+            }
+        }
     }
 
     companion object {

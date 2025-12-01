@@ -1,5 +1,6 @@
 package com.example.onlydate
 
+import android.app.AlarmManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -40,11 +41,18 @@ class DateWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         doUpdate(context, appWidgetManager, appWidgetIds)
+        scheduleNextUpdate(context)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         Logger.d(TAG, "Widget onReceive: ${intent.action}")
+        if (intent.action == ACTION_AUTO_UPDATE) {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val thisAppWidget = ComponentName(context.packageName, DateWidgetProvider::class.java.name)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(thisAppWidget)
+            onUpdate(context, appWidgetManager, appWidgetIds)
+        }
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
@@ -62,6 +70,7 @@ class DateWidgetProvider : AppWidgetProvider() {
         } else {
             context.startService(serviceIntent)
         }
+        scheduleNextUpdate(context)
     }
 
     override fun onDisabled(context: Context) {
@@ -70,9 +79,46 @@ class DateWidgetProvider : AppWidgetProvider() {
         Logger.d(TAG, "Last widget removed, stopping WidgetUpdateService")
         val serviceIntent = Intent(context, WidgetUpdateService::class.java)
         context.stopService(serviceIntent)
+        cancelUpdate(context)
     }
 
     companion object {
+        private const val ACTION_AUTO_UPDATE = "com.example.onlydate.ACTION_AUTO_UPDATE"
+
+        private fun scheduleNextUpdate(context: Context) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val intent = Intent(context, DateWidgetProvider::class.java).apply {
+                action = ACTION_AUTO_UPDATE
+            }
+            val pendingIntent = PendingIntent.getBroadcast(
+                context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val triggerTime = System.currentTimeMillis() + 60 * 1000 // 60 seconds
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                } else {
+                    Logger.w(TAG, "SCHEDULE_EXACT_ALARM permission not granted. Using inexact alarm.")
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                }
+            } else {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+            }
+        }
+
+        private fun cancelUpdate(context: Context) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            val intent = Intent(context, DateWidgetProvider::class.java).apply {
+                action = ACTION_AUTO_UPDATE
+            }
+            val pendingIntent = PendingIntent.getBroadcast(
+                context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            alarmManager.cancel(pendingIntent)
+        }
+
         internal fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray, temp: Double? = null) {
             for (appWidgetId in appWidgetIds) {
                 updateAppWidget(context, appWidgetManager, appWidgetId, temp)
