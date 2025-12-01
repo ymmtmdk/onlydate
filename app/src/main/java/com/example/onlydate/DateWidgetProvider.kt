@@ -3,6 +3,7 @@ package com.example.onlydate
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -43,7 +44,16 @@ class DateWidgetProvider : AppWidgetProvider() {
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        Log.d("OnlyDate", "Widget tapped / onReceive: ${intent.action}")
+        Log.d("OnlyDate", "Widget onReceive: ${intent.action}")
+        
+        // Handle ACTION_USER_PRESENT to update widget on device unlock
+        if (intent.action == Intent.ACTION_USER_PRESENT) {
+            Log.d("OnlyDate", "Device unlocked, updating widgets")
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val componentName = ComponentName(context, DateWidgetProvider::class.java)
+            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
+            doUpdate(context, appWidgetManager, appWidgetIds)
+        }
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
@@ -53,18 +63,12 @@ class DateWidgetProvider : AppWidgetProvider() {
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        val intent = Intent(context, ScreenOnService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
-        }
+        // Widget enabled - no service needed, using ACTION_USER_PRESENT broadcast
     }
 
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        val intent = Intent(context, ScreenOnService::class.java)
-        context.stopService(intent)
+        // Widget disabled - no service to stop
     }
 
     companion object {
