@@ -93,7 +93,22 @@ class WidgetConfigActivity : Activity() {
     override fun onResume() {
         super.onResume()
         Logger.d(TAG, "App icon tapped / Activity started")
-        updateWidgets()
+        updateWidgets(fetchData = true)
+    }
+
+    private val updateHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var pendingFetch = false
+    private val updateRunnable = Runnable {
+        updateWidgets(pendingFetch)
+        pendingFetch = false
+    }
+
+    private fun debounceUpdate(fetchData: Boolean = false) {
+        if (fetchData) {
+            pendingFetch = true
+        }
+        updateHandler.removeCallbacks(updateRunnable)
+        updateHandler.postDelayed(updateRunnable, 200)
     }
 
     private fun setupListeners() {
@@ -101,7 +116,7 @@ class WidgetConfigActivity : Activity() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: android.text.Editable?) {
-                updateWidgets()
+                debounceUpdate(fetchData = false)
             }
         }
 
@@ -124,7 +139,7 @@ class WidgetConfigActivity : Activity() {
         opacitySeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    updateWidgets()
+                    debounceUpdate(fetchData = false)
                 }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -135,11 +150,11 @@ class WidgetConfigActivity : Activity() {
         setupSeekBarListener(daySizeSeekBar, daySizeLabel)
         setupSeekBarListener(tempSizeSeekBar, tempSizeLabel)
 
-        showYearSwitch.setOnCheckedChangeListener { _, _ -> updateWidgets() }
-        showDayOfWeekSwitch.setOnCheckedChangeListener { _, _ -> updateWidgets() }
-        showTemperatureSwitch.setOnCheckedChangeListener { _, _ -> updateWidgets() }
-        languageRadioGroup.setOnCheckedChangeListener { _, _ -> updateWidgets() }
-        layoutRadioGroup.setOnCheckedChangeListener { _, _ -> updateWidgets() }
+        showYearSwitch.setOnCheckedChangeListener { _, _ -> debounceUpdate(fetchData = false) }
+        showDayOfWeekSwitch.setOnCheckedChangeListener { _, _ -> debounceUpdate(fetchData = false) }
+        showTemperatureSwitch.setOnCheckedChangeListener { _, isChecked -> debounceUpdate(fetchData = isChecked) }
+        languageRadioGroup.setOnCheckedChangeListener { _, _ -> debounceUpdate(fetchData = false) }
+        layoutRadioGroup.setOnCheckedChangeListener { _, _ -> debounceUpdate(fetchData = false) }
     }
     
     private fun validateAndCorrectColorInput(input: EditText, defaultValue: String, fieldName: String) {
@@ -161,7 +176,7 @@ class WidgetConfigActivity : Activity() {
                 val size = progress + WidgetSettings.MIN_TEXT_SIZE
                 label.text = "$size sp"
                 if (fromUser) {
-                    updateWidgets()
+                    debounceUpdate(fetchData = false)
                 }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -169,8 +184,8 @@ class WidgetConfigActivity : Activity() {
         })
     }
 
-    private fun updateWidgets() {
-        Logger.d(TAG, "updateWidgets")
+    private fun updateWidgets(fetchData: Boolean = false) {
+        Logger.d(TAG, "updateWidgets(fetchData=$fetchData)")
         val context: Context = this@WidgetConfigActivity
         saveSettings(context)
 
@@ -179,9 +194,9 @@ class WidgetConfigActivity : Activity() {
         val componentName = ComponentName(context, DateWidgetProvider::class.java)
         val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName)
 
-        // Fetch temperature in background if enabled
+        // Fetch temperature in background if enabled AND requested
         val showTemp = WidgetSettings.loadShowTemp(context)
-        if (showTemp) {
+        if (showTemp && fetchData) {
             Thread {
                 try {
                     val temp = DateWidgetProvider.fetchTemperaturePublic(context)
