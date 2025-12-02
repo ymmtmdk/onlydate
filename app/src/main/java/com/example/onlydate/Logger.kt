@@ -4,9 +4,11 @@ import android.util.Log
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.LinkedList
 
 object Logger {
-    private val logBuffer = StringBuilder()
+    private val logLines = LinkedList<String>()
+    private const val MAX_LOG_LINES = 1000
     private var listener: ((String) -> Unit)? = null
 
     fun d(tag: String, msg: String) {
@@ -32,9 +34,13 @@ object Logger {
 
     private fun appendLog(formattedMsg: String) {
         val timestamp = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        val entry = "$timestamp $formattedMsg\n"
-        synchronized(logBuffer) {
-            logBuffer.append(entry)
+        val entry = "$timestamp $formattedMsg"
+        synchronized(logLines) {
+            logLines.add(entry)
+            // Remove oldest logs if we exceed the limit
+            while (logLines.size > MAX_LOG_LINES) {
+                logLines.removeFirst()
+            }
         }
         // Notify on main thread if possible, but since this is a simple object, 
         // the caller (Activity) should handle threading if needed. 
@@ -54,14 +60,14 @@ object Logger {
     }
 
     fun getLogs(): String {
-        synchronized(logBuffer) {
-            return logBuffer.toString()
+        synchronized(logLines) {
+            return logLines.joinToString("\n")
         }
     }
     
     fun clear() {
-        synchronized(logBuffer) {
-            logBuffer.setLength(0)
+        synchronized(logLines) {
+            logLines.clear()
         }
         listener?.invoke("")
     }
