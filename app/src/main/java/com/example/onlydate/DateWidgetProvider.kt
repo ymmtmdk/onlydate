@@ -18,10 +18,8 @@ import java.io.InputStreamReader
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
-import java.util.concurrent.TimeUnit
+
+
 import org.json.JSONArray
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -75,26 +73,13 @@ class DateWidgetProvider : AppWidgetProvider() {
         
         // Schedule alarm FIRST to trigger system recognition of permission need
         scheduleNextUpdate(context)
-        scheduleWork(context)
         
-        // Then start the foreground service to listen for device unlock
-        Logger.d(TAG, "Starting WidgetUpdateService")
-        val serviceIntent = Intent(context, WidgetUpdateService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(serviceIntent)
-        } else {
-            context.startService(serviceIntent)
-        }
+
     }
 
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
-        // Stop the foreground service when last widget is removed
-        Logger.d(TAG, "Last widget removed, stopping WidgetUpdateService")
-        val serviceIntent = Intent(context, WidgetUpdateService::class.java)
-        context.stopService(serviceIntent)
         cancelUpdate(context)
-        cancelWork(context)
     }
 
     companion object {
@@ -147,34 +132,7 @@ class DateWidgetProvider : AppWidgetProvider() {
             alarmManager.cancel(pendingIntent)
         }
 
-        private fun scheduleWork(context: Context) {
-            try {
-                // Network required
-                val constraints = androidx.work.Constraints.Builder()
-                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
-                    .build()
-                
-                val workRequest = PeriodicWorkRequestBuilder<WidgetUpdateWorker>(
-                    15, TimeUnit.MINUTES,
-                    5, TimeUnit.MINUTES // flex interval - システムが5分の範囲で最適なタイミングを選択
-                ).setConstraints(constraints).build()
 
-                WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                    "WidgetUpdateWork",
-                    ExistingPeriodicWorkPolicy.KEEP,
-                    workRequest
-                )
-                Logger.d(TAG, "✓ WorkManager scheduled (15min interval, 5min flex)")
-            } catch (e: Exception) {
-                Logger.e(TAG, "✗ Failed to schedule WorkManager", e)
-                // Work失敗してもAlarmManagerとXMLが動く
-            }
-        }
-
-        private fun cancelWork(context: Context) {
-            WorkManager.getInstance(context).cancelUniqueWork("WidgetUpdateWork")
-            Logger.d(TAG, "Cancelled WorkManager update")
-        }
 
         internal fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray, temp: Double? = null) {
             for (appWidgetId in appWidgetIds) {
