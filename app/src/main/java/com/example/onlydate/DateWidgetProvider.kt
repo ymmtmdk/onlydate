@@ -23,6 +23,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 import org.json.JSONArray
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 
 class DateWidgetProvider : AppWidgetProvider() {
 
@@ -107,7 +109,7 @@ class DateWidgetProvider : AppWidgetProvider() {
                 context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            val triggerTime = System.currentTimeMillis() + 1 * 60 * 1000 // 60 seconds
+            val triggerTime = System.currentTimeMillis() + 3 * 60 * 1000 // 60 seconds
 
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -147,8 +149,10 @@ class DateWidgetProvider : AppWidgetProvider() {
 
         private fun scheduleWork(context: Context) {
             try {
-                // 制約なし = より確実に実行される
-                val constraints = androidx.work.Constraints.Builder().build()
+                // Network required
+                val constraints = androidx.work.Constraints.Builder()
+                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                    .build()
                 
                 val workRequest = PeriodicWorkRequestBuilder<WidgetUpdateWorker>(
                     15, TimeUnit.MINUTES,
@@ -277,25 +281,68 @@ class DateWidgetProvider : AppWidgetProvider() {
         }
 
         private fun fetchTemperature(context: Context): Double? {
-            Logger.d(TAG, "Fetching temperature...")
-            return try {
-                val url = URL("https://my-worker-dev.tmtfctry.workers.dev/46106/temp")
-                val connection = url.openConnection()
-                connection.connectTimeout = 5000
-                connection.readTimeout = 5000
-                val stream = connection.getInputStream()
-                val reader = BufferedReader(InputStreamReader(stream))
-                val response = reader.readText()
-                reader.close()
+            if (!isNetworkAvailable(context)) {
+                Logger.d(TAG, "No network connection, skipping temperature fetch")
+                return null
+            }
 
-                val temp = JSONArray(response).getDouble(0)
-                Logger.d(TAG, "Fetched temperature: $temp")
-                WidgetSettings.saveLastTemp(context, temp)
-                temp
-            } catch (e: Exception) {
-                Logger.e(TAG, "Failed to fetch temperature", e)
-                e.printStackTrace()
-                null
+            Logger.d(TAG, "Fetching temperature...")
+            
+            val maxRetries = 3
+            val baseDelayMs = 2000L // 2 seconds
+            val timeoutMs = 15000 // 15 seconds
+            
+            for (attempt in 1..maxRetries) {
+                try {
+                    Logger.d(TAG, "Temperature fetch attempt $attempt/$maxRetries")
+                    
+                    val url = URL("https://my-worker-dev.tmtfctry.workers.dev/46106/temp")
+                    val connection = url.openConnection()
+                    connection.connectTimeout = timeoutMs
+                    connection.readTimeout = timeoutMs
+                    val stream = connection.getInputStream()
+                    val reader = BufferedReader(InputStreamReader(stream))
+                    val response = reader.readText()
+                    reader.close()
+
+                    val temp = JSONArray(response).getDouble(0)
+                    Logger.d(TAG, "✓ Fetched temperature: $temp (attempt $attempt)")
+                    WidgetSettings.saveLastTemp(context, temp)
+                    return temp
+                } catch (e: Exception) {
+                    val isLastAttempt = attempt == maxRetries
+                    if (isLastAttempt) {
+                        Logger.e(TAG, "✗ Failed to fetch temperature after $maxRetries attempts", e)
+                        e.printStackTrace()
+                    } else {
+                        // Exponential backoff: 2s, 4s, 8s
+                        val delayMs = baseDelayMs * (1 shl (attempt - 1))
+                        Logger.w(TAG, "⚠ Attempt $attempt failed: ${e.message}, retrying in ${delayMs}ms...")
+                        Thread.sleep(delayMs)
+                    }
+                }
+            }
+            
+            return null
+        }
+
+
+        private fun isNetworkAvailable(context: Context): Boolean {
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val network = connectivityManager.activeNetwork ?: return false
+                val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+                return when {
+                    activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+                    activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+                    activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+                    else -> false
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                val networkInfo = connectivityManager.activeNetworkInfo ?: return false
+                @Suppress("DEPRECATION")
+                return networkInfo.isConnected
             }
         }
     }
