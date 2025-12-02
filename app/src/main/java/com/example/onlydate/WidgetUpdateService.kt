@@ -201,7 +201,7 @@ class WidgetUpdateService : Service() {
     }
 
     companion object {
-        private const val TAG = "WidgetUpdateService"
+        private const val TAG = "OnlyDate"
         private const val CHANNEL_ID = "widget_service_channel"
         private const val NOTIFICATION_ID = 1001
     }
